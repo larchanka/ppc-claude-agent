@@ -86,7 +86,7 @@ While in the agent prompt (`User> `), use these commands at any time:
 | :--- | :--- |
 | `/help` | Display interactive command cheatsheet and usage tips. |
 | `/new` | **Start a new conversation**: Clears chat history and resets context window without restarting the agent. |
-| `/auto` | **Enable Autonomous Mode**: Tools (`write_file`, `run_shell`) execute without asking for permission. |
+| `/auto` | **Enable Autonomous Mode**: Tools (`write_file`, `edit_file`, `run_shell`) execute without asking for permission. |
 | `/manual` | **Enable Manual Mode**: Requires explicit `[y/N]` user confirmation before modifying files or running shell commands. |
 | `/claude` | Switch active provider to **Anthropic Claude** (Claude Sonnet 4.5 / 3.7). |
 | `/gemini` | Switch active provider to **Google Gemini** (Gemini 2.5 Flash / Flash-Lite). |
@@ -101,8 +101,9 @@ While in the agent prompt (`User> `), use these commands at any time:
 
 Code Agent is equipped with native tools that allow it to act as an autonomous coding and system assistant on your Mac:
 
-- **`read_file`**: Read file contents with automatic UTF-8 decoding.
+- **`read_file`**: Read file contents with automatic UTF-8 decoding, optionally slicing a specific line range via `start_line` and `end_line` (1-based, inclusive).
 - **`write_file`**: Create or overwrite files on the filesystem.
+- **`edit_file`**: Surgically edit existing files by replacing, inserting, or deleting specific line ranges (`start_line` to `end_line`, 1-based, inclusive) with replacement `content`.
 - **`list_dir`**: Browse directories and examine repository structures.
 - **`run_shell`**: Execute Unix commands in the Tiger shell (`sh`/`bash`), allowing the agent to run tests, inspect system metrics, manage processes, and build software.
 
@@ -114,7 +115,7 @@ Code Agent is equipped with native tools that allow it to act as an autonomous c
                     ┌─────────┴─────────┐
                     │  Tool has side    │
                     │  effects? (write, │
-                    │     run_shell)    │
+                    │  edit, run_shell) │
                     └─────────┬─────────┘
                              / \
                        No   /   \   Yes
@@ -138,7 +139,7 @@ Code Agent is equipped with native tools that allow it to act as an autonomous c
                                      [ Execute Tool ]     [ Abort: "Cancelled by user" ]
 ```
 
-- In **Manual Mode** (`/manual`, default), destructive tools always pause and ask for confirmation:
+- In **Manual Mode** (`/manual`, default), destructive tools (`write_file`, `edit_file`, `run_shell`) always pause and ask for confirmation:
   ```text
   Tool: write_file path="hello.c"
   Write to file 'hello.c'? (y/n): y
@@ -186,13 +187,15 @@ graph TD
     
     ToolGate -->|Approved / /auto| T1["read_file"]
     ToolGate -->|Approved / /auto| T2["write_file"]
-    ToolGate -->|Approved / /auto| T3["list_dir"]
-    ToolGate -->|Approved / /auto| T4["run_shell"]
+    ToolGate -->|Approved / /auto| T3["edit_file"]
+    ToolGate -->|Approved / /auto| T4["list_dir"]
+    ToolGate -->|Approved / /auto| T5["run_shell"]
     
     T1 --> Loop
     T2 --> Loop
     T3 --> Loop
     T4 --> Loop
+    T5 --> Loop
 ```
 
 ---
@@ -235,6 +238,12 @@ If you prefer to run private models without internet access, you can run [Ollama
 Run the test suite directly on your Mac or any Unix machine with Perl 5.8+:
 
 ```bash
+# Assemble code-agent.pl from modular source files in src/
+perl build.pl
+
+# Verify source-to-distribution artifact synchronization
+perl build.pl --check
+
 # Verify Perl syntax (strict Perl 5.8.6 compatibility)
 perl -c code-agent.pl
 
@@ -243,6 +252,7 @@ prove -v t/*.t
 ```
 
 Test coverage includes:
+- `t/build.t`: Unit tests for `build.pl` modular assembly, syntax checks, and sync verification.
 - `t/00_syntax.t`: Perl syntax and Tiger constraint validation.
 - `t/mini_json.t`: Unit tests for the embedded `MiniJSON` parser and encoder.
 - `t/auto_manual_commands.t`: Unit tests for `/auto`, `/manual`, state accessors, and tool bypass logic.
@@ -252,8 +262,10 @@ Test coverage includes:
 
 ## 📦 File Breakdown
 
-- **`code-agent.pl`**: The monolithic, self-contained agent script (JSON engine, API adapters, terminal line editor, tool executor).
-- **`Install.command`**: Interactive double-click setup wizard for Mac OS X Finder and terminal.
+- **`code-agent.pl`**: The standalone, self-contained distribution agent script (JSON engine, API adapters, terminal line editor, tool executor) assembled by `build.pl`.
+- **`build.pl`**: Zero-dependency build script that compiles `src/*.pl` into `code-agent.pl` and verifies syntax.
+- **`src/`**: Modular source files (10 domain-specific components: `header.pl`, `json.pl`, `transport.pl`, `providers.pl`, `models_menu.pl`, `session.pl`, `tools.pl`, `terminal.pl`, `ui.pl`, `main.pl`).
+- **`Install.command`**: Interactive double-click setup wizard for Mac OS X Finder and terminal (automatically rebuilds from `src/` if present).
 - **`curl`**: Precompiled PowerPC Tiger binary (statically linked against OpenSSL 1.0.2u with TLS 1.2/1.3 support).
 - **`cacert.pem`**: Mozilla root CA certificate bundle for TLS verification.
 - **`t/`**: Test suite with automated unit and integration tests.

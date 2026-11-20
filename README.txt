@@ -49,7 +49,17 @@ WHAT'S INSIDE
 - curl            : prebuilt, TLS 1.2/1.3-capable curl for PowerPC/Tiger
 - cacert.pem       : current CA certificate bundle
 - code-agent.pl    : the agent itself (single Perl file, no dependencies)
+- build.pl         : build script to reassemble code-agent.pl from src/
+- src/             : modular source files for the agent
 - Install.command  : the installer you double-click
+
+BUILDING FROM SOURCE
+-------------------------
+If modifying the agent source code in src/:
+1. Run "perl build.pl" to assemble code-agent.pl.
+2. Run "perl build.pl --check" to verify sync.
+3. Run "prove -v t/*.t" to run tests.
+Install.command also runs "perl build.pl" automatically when src/ is present.
 
 More detail, and how to build everything from source, is in the full
 project's README.md.

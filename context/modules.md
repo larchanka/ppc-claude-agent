@@ -93,23 +93,49 @@ A recursive-descent JSON parser and encoder tailored for standard Perl scalars, 
 
 ---
 
-## 2. Module: `Install.command`
+## 2. Module: `build.pl`
+
+### Overview
+A manifest-driven assembly script written in pure Perl 5.8.6 with zero CPAN dependencies. It concatenates the 10 domain modules from `src/` into the standalone `code-agent.pl` distribution artifact, applies `chmod 0755`, and validates syntax via `perl -c`.
+
+### Command Line Interface
+- `perl build.pl`: Concatenates `src/*.pl` in manifest order, writes `code-agent.pl`, and verifies syntax.
+- `perl build.pl --check`: Compares current `code-agent.pl` against `src/` modules without modifying disk, returning exit code 0 if in sync or non-zero if out of sync.
+- `perl build.pl --src-dir <dir>`: Sets custom source directory.
+- `perl build.pl --output <file>`: Sets custom output file.
+
+### Ordered Assembly Manifest
+1. `src/header.pl`: Pragmas, UTF-8 binmode, constants, colors, cursor helpers, env helpers, globals, `configure_provider`, `$SYSTEM_PROMPT`.
+2. `src/json.pl`: Pure-Perl JSON parser and encoder (`MiniJSON`).
+3. `src/transport.pl`: Curl invocation (`call_api`) and shell quotation (`quote`).
+4. `src/providers.pl`: Provider-specific header/request builders, response parsers, model discovery.
+5. `src/models_menu.pl`: Interactive curses-like terminal model selector.
+6. `src/session.pl`: Session management, state accessors, slash command handlers.
+7. `src/tools.pl`: Tool definitions (`@TOOLS`), confirmation helpers, Gemini setup helpers, `run_tool` dispatcher.
+8. `src/terminal.pl`: Pure-Perl interactive readline engine with history and ANSI cursor positioning.
+9. `src/ui.pl`: Formatting helpers for tool summaries, tool calls, and thinking status.
+10. `src/main.pl`: Guarded entrypoint under `unless (caller)` with REPL loop and turnaround.
+
+---
+
+## 3. Module: `Install.command`
 
 ### Overview
 A standalone Bash script providing one-click installation on Mac OS X 10.4 Tiger.
 
 ### Key Operations
 1. **Toolchain Installation**: Copies `curl` to `$HOME/code-toolchain/bin/curl` and sets executable permissions.
-2. **Runtime Deployment**: Copies `code-agent.pl` and `cacert.pem` to `$HOME/code-build/`.
-3. **Curl Verification**: Executes `curl --version` to verify PowerPC CPU and kernel compatibility.
-4. **Interactive Provider Selection**: Guides user to choose Anthropic or Gemini, prompts for API key without echo, and writes `~/.code-agent-env` with permissions `0600`.
-5. **Launcher Wrapper**: Generates `$HOME/bin/code`, which sources the environment and launches `code-agent.pl`.
-6. **Path Configuration**: Updates `$HOME/.bash_profile` with `$HOME/bin` if not already present.
-7. **End-to-End Connectivity Verification**: Makes a test HTTP request to verify API keys and network connectivity before concluding setup.
+2. **Build from Source**: Automatically executes `perl build.pl` if `build.pl` and `src/` are present before copying to the build directory.
+3. **Runtime Deployment**: Copies `code-agent.pl` and `cacert.pem` to `$HOME/code-build/`.
+4. **Curl Verification**: Executes `curl --version` to verify PowerPC CPU and kernel compatibility.
+5. **Interactive Provider Selection**: Guides user to choose Anthropic or Gemini, prompts for API key without echo, and writes `~/.code-agent-env` with permissions `0600`.
+6. **Launcher Wrapper**: Generates `$HOME/bin/code`, which sources the environment and launches `code-agent.pl`.
+7. **Path Configuration**: Updates `$HOME/.bash_profile` with `$HOME/bin` if not already present.
+8. **End-to-End Connectivity Verification**: Makes a test HTTP request to verify API keys and network connectivity before concluding setup.
 
 ---
 
-## 3. Supplementary Assets
+## 4. Supplementary Assets
 
 | File | Purpose |
 | :--- | :--- |

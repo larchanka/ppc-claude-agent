@@ -23,6 +23,11 @@ echo "Installing curl (TLS 1.2/1.3 capable, prebuilt for PowerPC Tiger)..."
 cp -f curl "$TOOLCHAIN_DIR/bin/curl"
 chmod +x "$TOOLCHAIN_DIR/bin/curl"
 
+if [ -f "build.pl" ] && [ -d "src" ]; then
+  echo "Building code-agent.pl from src/..."
+  perl build.pl
+fi
+
 echo "Installing the agent and CA certificate bundle..."
 cp -f code-agent.pl "$BUILD_DIR/code-agent.pl"
 cp -f cacert.pem "$BUILD_DIR/src/cacert.pem"

@@ -18,6 +18,12 @@ Welcome to `ppc-claude-agent`. This file provides essential guidelines, architec
 
 ### Build & Setup
 ```bash
+# Assemble code-agent.pl from modular source files (src/*.pl)
+perl build.pl
+
+# Verify source-to-artifact synchronization
+perl build.pl --check
+
 # Verify Perl syntax of the standalone agent script
 perl -c code-agent.pl
 
@@ -68,11 +74,32 @@ For in-depth architectural details, refer to the documentation in the [`context/
 ### Key Entry Points & Core Components
 | Component / File | Role | Type |
 | :--- | :--- | :--- |
-| [`code-agent.pl`](./code-agent.pl) | Standalone interactive CLI agent loop, JSON engine, API adapters, and tool executors | Entrypoint / Core |
+| [`code-agent.pl`](./code-agent.pl) | Standalone interactive CLI agent loop, JSON engine, API adapters, and tool executors | Entrypoint / Distribution Artifact |
+| [`build.pl`](./build.pl) | Pure Perl 5.8.6 manifest-driven build script that compiles `src/*.pl` into `code-agent.pl` | Build Tool |
+| [`src/`](./src/) | Modular source files (10 functional modules, see breakdown below) | Source Tree |
 | [`Install.command`](./Install.command) | Interactive setup script for Finder and terminal, toolchain deployment, API key configuration | Installer Entrypoint |
 | [`curl`](./curl) | Prebuilt TLS 1.2/1.3 PowerPC Tiger curl binary | Binary Utility |
 | [`cacert.pem`](./cacert.pem) | Mozilla root certificate bundle for TLS verification | Security Asset |
 | [`README.txt`](./README.txt) | User installation and operational manual | Documentation |
+
+### Modular Source Layout (`src/*.pl`) & Build System
+`code-agent.pl` is generated from 10 modular files in `src/` concatenated in an explicit manifest order:
+1. `src/header.pl`: Pragmas, config, colors, cursor, env helpers, globals, `configure_provider`, `$SYSTEM_PROMPT`.
+2. `src/json.pl`: Pure-Perl JSON parser & encoder (`MiniJSON`).
+3. `src/transport.pl`: Curl invocation (`call_api`) and shell quotation (`quote`).
+4. `src/providers.pl`: Provider adapters for Anthropic, Gemini, OpenAI, model discovery.
+5. `src/models_menu.pl`: Interactive curses-like terminal model selection menu.
+6. `src/session.pl`: Session management, state accessors, slash command handlers.
+7. `src/tools.pl`: Tool definitions (`@TOOLS`), confirmation helpers, Gemini setup helpers, `run_tool`.
+8. `src/terminal.pl`: Pure-Perl interactive readline implementation with history and ANSI cursor positioning.
+9. `src/ui.pl`: Formatting helpers for tool calls, summaries, thinking status.
+10. `src/main.pl`: Guarded entrypoint under `unless (caller)` with REPL loop and turnaround.
+
+#### Build Tool Usage (`build.pl`)
+- `perl build.pl`: Concatenates `src/*.pl`, applies `chmod 0755`, runs `perl -c code-agent.pl`.
+- `perl build.pl --check`: Non-destructive sync check; returns exit code 0 if `code-agent.pl` matches `src/`, non-zero otherwise.
+- `perl build.pl --src-dir <dir>`: Custom source directory (default: `src`).
+- `perl build.pl --output <file>`: Custom output artifact path (default: `code-agent.pl`).
 
 ---
 
@@ -82,7 +109,7 @@ Follow these rules on every task:
 
 1. **Zero External Perl Dependencies**: `code-agent.pl` MUST remain 100% self-contained in standard Perl 5.8.6. Never introduce `cpan` dependencies or modern modules (e.g., `JSON::XS`, `LWP::UserAgent`, `Mojo::*`).
 2. **Mac OS X 10.4 Tiger Compatibility**: Do not use Perl features newer than 5.8.6 (avoid `state` variables, `say`, defined-or `//`, named regex captures, modern unicode properties).
-3. **Surgical Changes**: Touch only lines necessary for requested features or fixes. Do not reformat unrelated subroutines or comments.
+3. **Surgical Changes & Source Editing**: Touch only lines necessary for requested features or fixes. Do not reformat unrelated subroutines or comments. When modifying functionality, edit the appropriate source file in `src/*.pl` and run `perl build.pl` to regenerate `code-agent.pl`.
 4. **Preserve Raw STDIN / UTF-8 Separation**: Keep STDIN as raw bytes to prevent multibyte boundary corruption in Perl 5.8.6 PerlIO. Decode explicitly at line or buffer boundaries.
 5. **Preserve User Confirmations on Side Effects**: All filesystem modifications (`write_file`, `edit_file`) and command executions (`run_shell`) MUST check user permissions via `confirm_tool()`, which respects `$AUTO_MODE` (controlled by `/auto` and `/manual` slash commands or `$ENV{CLAUDE_AUTO_MODE}`) and delegates to interactive `confirm()` when in manual mode. Direct user prompts (e.g. saving API keys) must continue using `confirm()`.
 
