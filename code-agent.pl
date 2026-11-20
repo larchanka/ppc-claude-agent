@@ -66,8 +66,8 @@ sub load_env_file {
 
 # Theme-safe ANSI attributes (zero hardcoded colors; adapts to Terminal profile)
 my $COLOR_RESET = "\x1b[0m";
-my $COLOR_USER  = "\x1b[2m";
-my $COLOR_MODEL = "\x1b[1m";
+my $COLOR_USER  = "\x1b[0m";   # Default foreground (avoids \e[2m dim which blends into background on Leopard/Tiger)
+my $COLOR_MODEL = "\x1b[1m";   # Bold (high contrast using profile's bold setting)
 if (!-t STDOUT || exists $ENV{NO_COLOR}) {
     $COLOR_RESET = '';
     $COLOR_USER  = '';
