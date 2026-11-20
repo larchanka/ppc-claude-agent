@@ -1,6 +1,6 @@
 # Engineering Conventions & Invariants
 
-This document outlines the coding standards, environment invariants, and architectural constraints for `ppc-claude-agent`.
+This document outlines the coding standards, environment invariants, and architectural constraints for `ppc-code-ai-agent`.
 
 ---
 

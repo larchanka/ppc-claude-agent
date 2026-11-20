@@ -1,6 +1,6 @@
 # Agent Instructions & Codebase Guidelines
 
-Welcome to `ppc-claude-agent`. This file provides essential guidelines, architecture overview, verified commands, and operating constraints for AI agents and automated tools working in this repository.
+Welcome to `ppc-code-ai-agent`. This file provides essential guidelines, architecture overview, verified commands, and operating constraints for AI agents and automated tools working in this repository.
 
 ---
 

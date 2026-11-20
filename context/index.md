@@ -1,6 +1,6 @@
 # Codebase Context & Navigation
 
-This directory provides structured technical documentation about the system architecture, modules, dependencies, and engineering conventions of `ppc-claude-agent`.
+This directory provides structured technical documentation about the system architecture, modules, dependencies, and engineering conventions of `ppc-code-ai-agent`.
 
 ## Navigation Map
 
