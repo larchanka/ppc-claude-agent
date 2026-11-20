@@ -1,0 +1,25 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build code-agent.pl
+        run: perl build.pl
+
+      - name: Verify build sync
+        run: perl build.pl --check
+
+      - name: Run test suite
+        run: prove -I. t/*.t
