@@ -54,6 +54,10 @@ if (!-t STDOUT || exists $ENV{NO_COLOR}) {
 # via /claude or /gemini (see configure_provider below).
 my ($PROVIDER, $API_KEY, $MODEL, $API_URL, $ANTHROPIC_VERSION);
 
+# Autonomous tool execution mode. When enabled, tools that normally require
+# confirmation (write_file, run_shell) execute immediately without prompting.
+our $AUTO_MODE = $ENV{CLAUDE_AUTO_MODE} ? 1 : 0;
+
 # (Re)configures $API_KEY, $MODEL, $API_URL, etc. according to $provider.
 # Called at startup and by /claude and /gemini commands during conversation.
 # If corresponding environment variables (ANTHROPIC_API_KEY / GEMINI_API_KEY)
@@ -1042,6 +1046,16 @@ sub get_current_api_url {
     return $API_URL;
 }
 
+sub get_auto_mode {
+    return $AUTO_MODE;
+}
+
+sub set_auto_mode {
+    my ($val) = @_;
+    $AUTO_MODE = $val ? 1 : 0;
+    return $AUTO_MODE;
+}
+
 sub show_help {
     my ($out_fh) = @_;
     $out_fh ||= \*STDOUT;
@@ -1050,8 +1064,26 @@ sub show_help {
     print $out_fh "  /claude  - Switch to Anthropic Claude\n";
     print $out_fh "  /gemini  - Switch to Google Gemini\n";
     print $out_fh "  /openai  - Switch to OpenAI-compatible endpoint\n";
+    print $out_fh "  /auto    - Enable auto mode (run tools without confirmation)\n";
+    print $out_fh "  /manual  - Enable manual mode (require tool confirmation)\n";
     print $out_fh "  /help    - Show available commands\n";
     print $out_fh "  exit     - Exit the agent (or Ctrl-D)\n";
+}
+
+sub handle_auto_command {
+    my ($out_fh) = @_;
+    $out_fh ||= \*STDOUT;
+    set_auto_mode(1);
+    print $out_fh "Auto mode enabled. Tools will execute without user confirmation.\n";
+    return 1;
+}
+
+sub handle_manual_command {
+    my ($out_fh) = @_;
+    $out_fh ||= \*STDOUT;
+    set_auto_mode(0);
+    print $out_fh "Manual mode enabled. Tools will require user confirmation.\n";
+    return 0;
 }
 
 sub handle_models_command {
@@ -1130,6 +1162,12 @@ sub confirm {
     print "\n[Confirm] $msg\nProceed? [y/N] ";
     my $ans = read_line_interactive('', 0);
     return defined($ans) && $ans =~ /^y/i;
+}
+
+sub confirm_tool {
+    my ($prompt) = @_;
+    return 1 if $AUTO_MODE;
+    return confirm($prompt);
 }
 
 # Display responses incrementally like a typewriter. Added based on feedback
@@ -2005,7 +2043,7 @@ sub run_tool {
     }
     elsif ($name eq 'write_file') {
         my $path = $input->{path};
-        unless (confirm("Write to file '$path'?")) {
+        unless (confirm_tool("Write to file '$path'?")) {
             return "Cancelled by user.";
         }
         open(my $fh, '>:encoding(UTF-8)', $path) or return "Error: cannot write $path: $!";
@@ -2022,7 +2060,7 @@ sub run_tool {
     }
     elsif ($name eq 'run_shell') {
         my $command = $input->{command};
-        unless (confirm("Run this command: $command")) {
+        unless (confirm_tool("Run this command: $command")) {
             return "Cancelled by user.";
         }
         my $output = `$command 2>&1`;
@@ -2047,7 +2085,7 @@ print "\e[7mCode AI-Agent\e[0m\n";
     }
     print "[$PROVIDER / $MODEL$where]\n";
 }
-print "Hello. (Type 'exit' or Ctrl-D to quit. Switch model with /models. Switch AI with /claude /gemini /openai. Type /help for help)\n";
+print "Hello. (Type 'exit' or Ctrl-D to quit. Switch model with /models. Switch AI with /claude /gemini /openai. Mode with /auto /manual. Type /help for help)\n";
 
 while (1) {
     my $input = read_line_interactive("\nUser> ", 1, $COLOR_USER);
@@ -2064,6 +2102,16 @@ while (1) {
 
     if ($input eq '/models') {
         handle_models_command();
+        next;
+    }
+
+    if ($input eq '/auto') {
+        handle_auto_command();
+        next;
+    }
+
+    if ($input eq '/manual') {
+        handle_manual_command();
         next;
     }
 
