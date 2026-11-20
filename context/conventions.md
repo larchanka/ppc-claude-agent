@@ -74,5 +74,5 @@ Any action that alters disk contents or executes arbitrary system instructions M
    ```
 2. **Context & Link Verification**:
    ```bash
-   python3 /Users/mikhaillarchanka/.gemini/config/skills/codebase-context-generator/scripts/verify_context.py --root .
+   python3 ~/.gemini/config/skills/codebase-context-generator/scripts/verify_context.py --root .
    ```

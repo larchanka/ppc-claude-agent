@@ -61,30 +61,30 @@ The repository maintains an automated AST symbol and call graph inside `.context
 
 ```bash
 # 1. Scan AST across codebase
-python3 /Users/mikhaillarchanka/.gemini/config/skills/codebase-context-generator/scripts/ast_scanner.py --root . --summary
+python3 ~/.gemini/config/skills/codebase-context-generator/scripts/ast_scanner.py --root . --summary
 
 # 2. Build dependency graph
-python3 /Users/mikhaillarchanka/.gemini/config/skills/codebase-context-generator/scripts/dependency_graph.py --manifest .context_cache/ast_manifest.json
+python3 ~/.gemini/config/skills/codebase-context-generator/scripts/dependency_graph.py --manifest .context_cache/ast_manifest.json
 
 # 3. Update symbol graph & export signature index
-python3 /Users/mikhaillarchanka/.gemini/config/skills/codebase-context-generator/scripts/symbol_graph.py \
+python3 ~/.gemini/config/skills/codebase-context-generator/scripts/symbol_graph.py \
   --manifest .context_cache/ast_manifest.json \
   --save-graph .context_cache/symbol_graph.json \
   --export-signatures context/signatures.md
 
 # 4. Verify context integrity and markdown links
-python3 /Users/mikhaillarchanka/.gemini/config/skills/codebase-context-generator/scripts/verify_context.py --root .
+python3 ~/.gemini/config/skills/codebase-context-generator/scripts/verify_context.py --root .
 ```
 
 ### Fast Signature & Call-Graph Navigation
 During development, you can query function signatures and call hierarchies instantly:
 ```bash
 # Find function signature, parameter types, and location
-python3 /Users/mikhaillarchanka/.gemini/config/skills/codebase-context-generator/scripts/symbol_graph.py --find "show_banner"
+python3 ~/.gemini/config/skills/codebase-context-generator/scripts/symbol_graph.py --find "show_banner"
 
 # Trace callers of a function
-python3 /Users/mikhaillarchanka/.gemini/config/skills/codebase-context-generator/scripts/symbol_graph.py --callers "confirm_tool"
+python3 ~/.gemini/config/skills/codebase-context-generator/scripts/symbol_graph.py --callers "confirm_tool"
 
 # Trace what a function calls
-python3 /Users/mikhaillarchanka/.gemini/config/skills/codebase-context-generator/scripts/symbol_graph.py --callees "call_api"
+python3 ~/.gemini/config/skills/codebase-context-generator/scripts/symbol_graph.py --callees "call_api"
 ```

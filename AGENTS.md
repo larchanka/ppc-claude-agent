@@ -55,7 +55,7 @@ perl code-agent.pl
 perl -c code-agent.pl
 
 # Verify context documentation integrity
-python3 /Users/mikhaillarchanka/.gemini/config/skills/codebase-context-generator/scripts/verify_context.py --root .
+python3 ~/.gemini/config/skills/codebase-context-generator/scripts/verify_context.py --root .
 ```
 
 ---
@@ -125,13 +125,13 @@ Run the following update sequence:
 
 ```bash
 # 1. Rescan AST and update symbol/call graphs
-python3 /Users/mikhaillarchanka/.gemini/config/skills/codebase-context-generator/scripts/ast_scanner.py --root .
-python3 /Users/mikhaillarchanka/.gemini/config/skills/codebase-context-generator/scripts/dependency_graph.py --manifest .context_cache/ast_manifest.json
-python3 /Users/mikhaillarchanka/.gemini/config/skills/codebase-context-generator/scripts/symbol_graph.py \
+python3 ~/.gemini/config/skills/codebase-context-generator/scripts/ast_scanner.py --root .
+python3 ~/.gemini/config/skills/codebase-context-generator/scripts/dependency_graph.py --manifest .context_cache/ast_manifest.json
+python3 ~/.gemini/config/skills/codebase-context-generator/scripts/symbol_graph.py \
   --manifest .context_cache/ast_manifest.json \
   --save-graph .context_cache/symbol_graph.json \
   --export-signatures context/signatures.md
 
 # 2. Verify documentation integrity
-python3 /Users/mikhaillarchanka/.gemini/config/skills/codebase-context-generator/scripts/verify_context.py --root .
+python3 ~/.gemini/config/skills/codebase-context-generator/scripts/verify_context.py --root .
 ```
