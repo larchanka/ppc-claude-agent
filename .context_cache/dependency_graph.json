@@ -10,25 +10,25 @@
   ],
   "internal_graph": {
     "t/mock_curl.pl": [],
-    "Install.command": [],
-    "claude-agent.pl": []
+    "claude-agent.pl": [],
+    "Install.command": []
   },
   "reverse_graph": {
     "t/mock_curl.pl": [],
-    "Install.command": [],
-    "claude-agent.pl": []
+    "claude-agent.pl": [],
+    "Install.command": []
   },
   "file_external_deps": {
     "t/mock_curl.pl": [
       "strict",
       "warnings"
     ],
-    "Install.command": [],
     "claude-agent.pl": [
       "strict",
       "warnings",
       "utf8",
       "Encode qw(decode encode FB_DEFAULT"
-    ]
+    ],
+    "Install.command": []
   }
 }

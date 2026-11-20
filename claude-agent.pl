@@ -39,10 +39,10 @@ my $MAX_TOKENS = 4096;
 # (fallback write target when not using setup.sh).
 my $ENV_FILE_PATH = ($ENV{HOME} || '.') . '/.claude-agent-env';
 
-# ANSI colors for user input (gray) and model responses (blue)
-my $COLOR_RESET = "\x1b[0m";
-my $COLOR_USER  = "\x1b[90m";  # Gray
-my $COLOR_MODEL = "\x1b[34m";  # Blue
+# Theme-safe ANSI attributes (zero hardcoded colors; adapts to Terminal profile)
+my $COLOR_RESET = "\x1b[0m";   # Default foreground and background
+my $COLOR_USER  = "\x1b[2m";   # Dim/Faint (secondary text; degrades to default foreground on older terminals)
+my $COLOR_MODEL = "\x1b[1m";   # Bold (high contrast using profile's configured Bold text color/weight)
 if (!-t STDOUT || exists $ENV{NO_COLOR}) {
     $COLOR_RESET = '';
     $COLOR_USER  = '';
@@ -897,7 +897,11 @@ sub _render_menu_lines {
         if (length($label) > $max_label_len) {
             $label = substr($label, 0, $max_label_len - 3) . "...";
         }
-        push @lines, sprintf("%s%2d) %s%s", $prefix, $i + 1, $label, $cur);
+        my $row = sprintf("%s%2d) %s%s", $prefix, $i + 1, $label, $cur);
+        if ($i == $cursor && $COLOR_RESET ne '') {
+            $row = "\x1b[1;7m" . $row . $COLOR_RESET;
+        }
+        push @lines, $row;
     }
 
     if (defined $num_buf && $num_buf ne '') {
@@ -1682,7 +1686,7 @@ sub read_secret_or_cancel {
         my $hist_idx = scalar(@HISTORY); # History cursor (end of array = new input in progress)
         my $saved_buf = '';              # Stashed input prior to traversing history
 
-        # Leading newline in $prompt (e.g. "\nWhat can I help with?> ") is only used on initial print.
+        # Leading newline in $prompt (e.g. "\nUser> ") is only used on initial print.
         # Including it in redraws would insert newlines on every keystroke.
         (my $redraw_prompt = $prompt) =~ s/^\n+//;
 
@@ -2035,7 +2039,7 @@ sub run_tool {
 unless (caller) {
 my @messages;
 
-print "=== PPC G4 Code ===\n";
+print "\e[7mCode AI-Agent\e[0m\n";
 {
     my $where = '';
     if ($PROVIDER eq 'openai' && $API_URL =~ m{^https?://([^/]+)}) {
@@ -2046,7 +2050,7 @@ print "=== PPC G4 Code ===\n";
 print "Hello. (Type 'exit' or Ctrl-D to quit. Switch model with /models. Switch AI with /claude /gemini /openai. Type /help for help)\n";
 
 while (1) {
-    my $input = read_line_interactive("\nWhat can I help with?> ", 1, $COLOR_USER);
+    my $input = read_line_interactive("\nUser> ", 1, $COLOR_USER);
     last unless defined $input;
     # Decode to UTF-8 after full line (raw bytes) is read
     $input = decode('UTF-8', $input, FB_DEFAULT);
@@ -2138,7 +2142,7 @@ while (1) {
         my @tool_results;
         for my $block (@content_blocks) {
             if ($block->{type} eq 'text') {
-                print "\n${COLOR_MODEL}claude> ";
+                print "\n${COLOR_MODEL}Code AI> ";
                 slow_print("$block->{text}\n");
                 print $COLOR_RESET;
             }

@@ -82,7 +82,7 @@ graph TD
 
 ## Data Flow & Lifecycle
 
-1. **User Input**: The user enters a prompt at `What can I help with?> `. Characters are read one-by-one in raw mode, handling VT100 control codes and UTF-8 multibyte sequences.
+1. **User Input**: The user enters a prompt at `User> `. Characters are read one-by-one in raw mode, handling VT100 control codes and UTF-8 multibyte sequences.
 2. **Context Assembly**: The prompt is appended to `@messages`.
 3. **Request Serialization**: `build_request()` translates `@messages`, available `@TOOLS`, and the `$SYSTEM_PROMPT` into the appropriate provider format and encodes it with `MiniJSON::encode()`.
 4. **Transport**: `call_api()` spawns `curl` with `--cacert cacert.pem` to POST the payload to the provider endpoint over TLS 1.2/1.3.

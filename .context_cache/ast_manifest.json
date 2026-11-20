@@ -1,7 +1,7 @@
 {
   "root": "/Users/mikhaillarchanka/Projects/ppc-claude-agent",
   "total_files": 3,
-  "total_lines": 2458,
+  "total_lines": 2462,
   "total_symbols": 53,
   "languages": {
     "bash": 1,
@@ -28,8 +28,8 @@
       "path": "claude-agent.pl",
       "language": "perl",
       "extension": ".pl",
-      "lines": 2170,
-      "size_bytes": 87188,
+      "lines": 2174,
+      "size_bytes": 87522,
       "parser": "regex_fallback",
       "symbols": {
         "classes": [],
@@ -152,99 +152,99 @@
           },
           {
             "name": "select_model_interactive",
-            "line": 910
+            "line": 914
           },
           {
             "name": "get_current_model",
-            "line": 1029
-          },
-          {
-            "name": "get_current_provider",
             "line": 1033
           },
           {
-            "name": "get_current_api_url",
+            "name": "get_current_provider",
             "line": 1037
           },
           {
-            "name": "show_help",
+            "name": "get_current_api_url",
             "line": 1041
           },
           {
+            "name": "show_help",
+            "line": 1045
+          },
+          {
             "name": "handle_models_command",
-            "line": 1053
+            "line": 1057
           },
           {
             "name": "confirm",
-            "line": 1124
+            "line": 1128
           },
           {
             "name": "slow_print",
-            "line": 1136
+            "line": 1140
           },
           {
             "name": "gemini_key_setup",
-            "line": 1158
+            "line": 1162
           },
           {
             "name": "_validate_gemini_key",
-            "line": 1245
+            "line": 1249
           },
           {
             "name": "_maybe_save_gemini_key",
-            "line": 1281
+            "line": 1285
           },
           {
             "name": "read_secret_or_cancel",
-            "line": 1318
+            "line": 1322
           },
           {
             "name": "_debug_log",
-            "line": 1370
+            "line": 1374
           },
           {
             "name": "_utf8_char_len",
-            "line": 1392
+            "line": 1396
           },
           {
             "name": "_char_width",
-            "line": 1403
+            "line": 1407
           },
           {
             "name": "_display_width_chars",
-            "line": 1418
+            "line": 1422
           },
           {
             "name": "_display_width",
-            "line": 1426
+            "line": 1430
           },
           {
             "name": "_term_size",
-            "line": 1438
+            "line": 1442
           },
           {
             "name": "_query_cursor_row",
-            "line": 1457
+            "line": 1461
           },
           {
             "name": "_query_cursor_pos",
-            "line": 1513
+            "line": 1517
           },
           {
             "name": "_probe_terminal_size",
-            "line": 1580
+            "line": 1584
           },
           {
             "name": "_walk_position",
-            "line": 1621
+            "line": 1625
           },
           {
             "name": "read_line_interactive",
-            "line": 1641
+            "line": 1645
           },
           {
             "name": "run_tool",
-            "line": 1989
+            "line": 1993
           }
         ],
         "interfaces_and_types": [],
