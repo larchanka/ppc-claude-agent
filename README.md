@@ -251,12 +251,19 @@ perl -c code-agent.pl
 prove -v t/*.t
 ```
 
-Test coverage includes:
-- `t/build.t`: Unit tests for `build.pl` modular assembly, syntax checks, and sync verification.
-- `t/00_syntax.t`: Perl syntax and Tiger constraint validation.
-- `t/mini_json.t`: Unit tests for the embedded `MiniJSON` parser and encoder.
+Test coverage includes 12 automated test suites:
 - `t/auto_manual_commands.t`: Unit tests for `/auto`, `/manual`, state accessors, and tool bypass logic.
-- `t/live_gemini.t` & `t/live_anthropic.t`: Integration tests against live endpoints.
+- `t/banner.t`: Unit tests for two-tone ANSI banner formatting, 80-column bounds, and `$NO_COLOR` graceful degradation.
+- `t/build.t`: Unit tests for `build.pl` modular assembly, syntax checks, and sync verification.
+- `t/call_api.t`: Mocked curl transport invocation and error handling tests.
+- `t/env_config.t`: Environment configuration and fallback provider tests.
+- `t/fetch_models.t`: Model discovery normalization tests across providers.
+- `t/models_command.t`: Interactive `/models` slash command handling.
+- `t/new_command.t`: Session reset, conversation archiving, and context clearing tests.
+- `t/select_model_interactive.t`: Terminal menu navigation, key reading, and scrolling tests.
+- `t/thinking_visuals.t`: Extended reasoning / thinking progress visual timers.
+- `t/tool_call_visuals.t`: ANSI formatting and compact parameter summaries for tool calls.
+- `t/tool_read_edit_file.t`: Line slicing and targeted multi-line editing tests.
 
 ---
 
