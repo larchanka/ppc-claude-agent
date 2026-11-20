@@ -84,6 +84,15 @@ A recursive-descent JSON parser and encoder tailored for standard Perl scalars, 
 - `_display_width($str)` / `_display_width_chars(@chars)`: Calculates visual column footprint of strings.
 - `_utf8_char_len($byte)`: Inspects leading UTF-8 byte to determine expected continuation length.
 
+#### UI Formatting & Visuals
+- `show_banner($out_fh)`: Renders retro two-tone ASCII art startup banner ("Code" in yellow, "Agent" in magenta) with active provider, model, and mode status indicators.
+- `format_tool_call($name, $input)`: Formats tool invocation lines with ANSI colors and compact argument summaries.
+- `format_tool_summary($name, $input)`: Produces concise, human-readable summaries of tool parameters (e.g. truncated file paths or commands).
+- `format_thinking_status($elapsed)`: Formats active reasoning/thinking progress indicator with elapsed timer.
+- `finalize_thinking_line($elapsed)`: Replaces active progress with final thinking duration.
+- `clear_thinking_line()`: Clears transient thinking line via carriage return and ANSI line clear (`\r\033[K`).
+- `slow_print($text)`: Prints output with simulated typewriter delay for vintage terminal ambiance.
+
 #### Network & Tool Execution
 - `call_api($url, $headers_ref, $body_json, $method)`: Executes bundled `curl` with SSL certificate bundle for POST or GET requests and returns HTTP response body.
 - `confirm($prompt)`: Displays an interactive `[y/N]` prompt requiring affirmative user consent.
