@@ -1115,13 +1115,17 @@ sub handle_models_command {
 # ------------------------------------------------------------------
 # Tool definitions and tool execution
 # ------------------------------------------------------------------
-my @TOOLS = (
+our @TOOLS = (
     {
         name => 'read_file',
-        description => 'Read file contents',
+        description => 'Read file contents, optionally between start_line and end_line (1-based, inclusive)',
         input_schema => {
             type => 'object',
-            properties => { path => { type => 'string', description => 'Path to the file to read' } },
+            properties => {
+                path       => { type => 'string', description => 'Path to the file to read' },
+                start_line => { type => 'integer', description => 'Optional 1-based start line number (inclusive)' },
+                end_line   => { type => 'integer', description => 'Optional 1-based end line number (inclusive)' },
+            },
             required => ['path'],
         },
     },
@@ -2035,11 +2039,29 @@ sub run_tool {
     # as tool_result log. The user only directly sees the confirm() prompt.
     if ($name eq 'read_file') {
         my $path = $input->{path};
+        if (defined $input->{start_line} && defined $input->{end_line} && $input->{start_line} > $input->{end_line}) {
+            return "Error: start_line ($input->{start_line}) cannot be greater than end_line ($input->{end_line})";
+        }
         open(my $fh, '<:encoding(UTF-8)', $path) or return "Error: cannot open $path: $!";
-        local $/;
-        my $content = <$fh>;
+        if (!defined $input->{start_line} && !defined $input->{end_line}) {
+            local $/;
+            my $content = <$fh>;
+            close $fh;
+            return defined $content ? $content : '';
+        }
+        my @lines = <$fh>;
         close $fh;
-        return $content;
+
+        my $total = scalar @lines;
+        my $start = defined $input->{start_line} ? int($input->{start_line}) : 1;
+        my $end   = defined $input->{end_line}   ? int($input->{end_line})   : $total;
+
+        $start = 1 if $start < 1;
+        $end   = $total if $end > $total;
+
+        return '' if $start > $total || $start > $end;
+
+        return join('', @lines[ ($start - 1) .. ($end - 1) ]);
     }
     elsif ($name eq 'write_file') {
         my $path = $input->{path};
