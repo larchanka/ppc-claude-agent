@@ -32,6 +32,22 @@ A recursive-descent JSON parser and encoder tailored for standard Perl scalars, 
 - `_validate_gemini_key($key)`: Performs a lightweight test query to verify validity.
 - `_maybe_save_gemini_key($key)`: Prompts the user to save credentials to `~/.claude-agent-env`.
 - `read_secret_or_cancel($prompt)`: Prompts for sensitive input with echo disabled, supporting cancel via Escape or Ctrl+C.
+- `get_current_model()`: Returns active `$MODEL`.
+- `get_current_provider()`: Returns active `$PROVIDER`.
+- `get_current_api_url()`: Returns active `$API_URL`.
+
+#### Model Discovery & Selection
+- `fetch_models($provider)`: Dispatches to provider-specific fetchers and returns normalized `($models_ref, $error)`.
+- `_fetch_models_anthropic()`: Queries Anthropic GET `/v1/models?limit=100` and extracts model descriptors.
+- `_fetch_models_gemini()`: Queries Gemini GET `/v1beta/models?pageSize=100`, filters for `generateContent` support, and strips `models/` prefix.
+- `_fetch_models_openai()`: Queries OpenAI-compatible GET `<base>/models` and extracts IDs.
+- `_normalize_models($models_ref)`: Normalizes model array into uniform `[{ id => "...", display => "..." }]` structures.
+- `select_model_interactive($models_ref, $current_model, $in_fh, $out_fh)`: Interactive full-terminal or non-TTY fallback selector with arrow keys, direct numeric typing, Enter to confirm, and Esc/Ctrl+C to cancel.
+- `_select_model_nontty($models_ref, $current_model, $in_fh, $out_fh)`: Numbered model selector fallback for non-interactive or piped streams.
+- `_read_menu_key($in_fh)`: Reads single keypress in raw mode with 50ms escape sequence disambiguation (Esc vs Arrow keys).
+- `_render_menu_lines($models, $cursor, $window_start, $page_size, $current_model, $num_buf)`: Formats paginated windowed model list and status line for terminal rendering.
+- `handle_models_command($in_fh, $out_fh)`: Command handler for `/models` slash command, coordinating fetch, selection, and model switching.
+- `show_help($out_fh)`: Displays available slash commands and descriptions.
 
 #### Request & Response Construction
 - `build_headers()`: Returns array of HTTP headers tailored to current provider (e.g. `x-api-key`, `anthropic-version`, `x-goog-api-key`, `Authorization`).
@@ -56,7 +72,7 @@ A recursive-descent JSON parser and encoder tailored for standard Perl scalars, 
 - `_utf8_char_len($byte)`: Inspects leading UTF-8 byte to determine expected continuation length.
 
 #### Network & Tool Execution
-- `call_api($url, $headers_ref, $body_json)`: Executes bundled `curl` with SSL certificate bundle and returns HTTP response body.
+- `call_api($url, $headers_ref, $body_json, $method)`: Executes bundled `curl` with SSL certificate bundle for POST or GET requests and returns HTTP response body.
 - `confirm($prompt)`: Displays a `[y/N]` prompt requiring affirmative user consent before executing side effects.
 - `slow_print($text)`: Prints output with simulated typewriter delay for vintage terminal ambiance.
 - `run_tool($name, $input)`: Executes requested agent tools (`read_file`, `write_file`, `list_dir`, `run_shell`).
