@@ -167,7 +167,7 @@ is($archived_none, undef, "archive_session() returns undef when no current sessi
               qq{$perl $script 2>&1};
     my $output = `$cmd`;
 
-    like($output, qr{New chat with /new}, "Startup banner mentions /new");
+    like($output, qr{Type /help for commands}, "Startup banner mentions /help for commands");
     like($output, qr{Started a new conversation\. Chat history cleared\.},
          "Interactive conversation loop dispatches /new and prints confirmation");
     like($output, qr{Goodbye\.}, "Clean exit from conversation loop after /new");

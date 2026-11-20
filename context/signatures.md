@@ -83,6 +83,7 @@ Quick-reference catalog of function and method signatures, arguments, and return
 | `finalize_thinking_line` | `finalize_thinking_line()` | L2447 | 0 |
 | `clear_thinking_line` | `clear_thinking_line()` | L2452 | 0 |
 | `slow_print` | `slow_print()` | L2457 | 0 |
+| `show_banner` | `show_banner()` | L2472 | 0 |
 
 ## [`src/header.pl`](../src/header.pl)
 
@@ -213,3 +214,4 @@ Quick-reference catalog of function and method signatures, arguments, and return
 | `finalize_thinking_line` | `finalize_thinking_line()` | L119 | 0 |
 | `clear_thinking_line` | `clear_thinking_line()` | L124 | 0 |
 | `slow_print` | `slow_print()` | L129 | 0 |
+| `show_banner` | `show_banner()` | L144 | 0 |

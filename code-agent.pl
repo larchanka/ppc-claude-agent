@@ -2469,6 +2469,51 @@ sub slow_print {
     }
 }
 
+sub show_banner {
+    my ($out_fh) = @_;
+    $out_fh ||= \*STDOUT;
+
+    my $c_yellow  = defined $COLOR_DIM   ? $COLOR_DIM   : '';
+    my $c_magenta = defined $COLOR_MODEL ? $COLOR_MODEL : '';
+    my $c_reset   = defined $COLOR_RESET ? $COLOR_RESET : '';
+
+    my @banner_lines = (
+        [ "   _____          _       ", "  ___                    _   " ],
+        [ "  / ____|        | |      ", " / _ \\                  | |  " ],
+        [ " | |     ___   __| | ___  ", "/ /_\\ \\ __ _  ___ _ __  | |_ " ],
+        [ " | |    / _ \\ / _` |/ _ \\ ", "|  _  |/ _` |/ _ \\ '_ \\ | __|" ],
+        [ " | |___| (_) | (_| |  __/ ", "| | | | (_| |  __/ | | || |_ " ],
+        [ "  \\_____\\___/ \\__,_|\\___| ", "\\_| |_/\\__, |\\___|_| |_| \\__|" ],
+        [ "                          ", "        __/ |                " ],
+        [ "                          ", "       |___/                 " ],
+    );
+
+    for my $pair (@banner_lines) {
+        my ($code_part, $agent_part) = @$pair;
+        if ($code_part =~ /\S/) {
+            print $out_fh $c_yellow . $code_part . $c_reset . $c_magenta . $agent_part . $c_reset . "\n";
+        }
+        else {
+            print $out_fh $code_part . $c_magenta . $agent_part . $c_reset . "\n";
+        }
+    }
+    print $out_fh "\n";
+
+    my $prov = (defined &get_current_provider ? get_current_provider() : undef) || $PROVIDER || 'unknown';
+    my $mod  = (defined &get_current_model ? get_current_model() : undef) || $MODEL || 'unknown';
+    my $api_url = (defined &get_current_api_url ? get_current_api_url() : undef) || $API_URL || '';
+    my $where = '';
+    if ($prov eq 'openai' && $api_url =~ m{^https?://([^/]+)}) {
+        $where = " @ $1";
+    }
+    my $auto = defined &get_auto_mode ? get_auto_mode() : $AUTO_MODE;
+    my $mode_str = (defined $auto && $auto) ? 'auto' : 'manual';
+
+    print $out_fh " [$prov / $mod$where]  mode: $mode_str\n";
+    print $out_fh " Type /help for commands, /models to switch model.\n";
+}
+
+
 # --- END src/ui.pl ---
 
 # --- BEGIN src/main.pl ---
@@ -2502,15 +2547,7 @@ unless (caller) {
 
 get_current_session();
 
-print "\e[7mCode AI-Agent\e[0m\n";
-{
-    my $where = '';
-    if ($PROVIDER eq 'openai' && $API_URL =~ m{^https?://([^/]+)}) {
-        $where = " @ $1";
-    }
-    print "[$PROVIDER / $MODEL$where]\n";
-}
-print "Hello. (Type 'exit' or Ctrl-D to quit. New chat with /new. Switch model with /models. Switch AI with /claude /gemini /openai. Mode with /auto /manual. Type /help for help)\n";
+show_banner();
 
 while (1) {
     my $input = read_line_interactive("\nUser> ${COLOR_RESET}", 1, $COLOR_USER);

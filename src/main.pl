@@ -28,15 +28,7 @@ unless (caller) {
 
 get_current_session();
 
-print "\e[7mCode AI-Agent\e[0m\n";
-{
-    my $where = '';
-    if ($PROVIDER eq 'openai' && $API_URL =~ m{^https?://([^/]+)}) {
-        $where = " @ $1";
-    }
-    print "[$PROVIDER / $MODEL$where]\n";
-}
-print "Hello. (Type 'exit' or Ctrl-D to quit. New chat with /new. Switch model with /models. Switch AI with /claude /gemini /openai. Mode with /auto /manual. Type /help for help)\n";
+show_banner();
 
 while (1) {
     my $input = read_line_interactive("\nUser> ${COLOR_RESET}", 1, $COLOR_USER);
