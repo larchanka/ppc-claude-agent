@@ -9,6 +9,7 @@ my $root_dir = abs_path(dirname(__FILE__) . '/..');
 $ENV{CLAUDE_CURL} = "$root_dir/t/mock_curl.pl";
 $ENV{CLAUDE_CACERT} = "$root_dir/cacert.pem";
 
+system($^X, "$root_dir/build.pl") unless -f "$root_dir/code-agent.pl";
 require "$root_dir/code-agent.pl";
 
 our ($COLOR_DIM, $COLOR_RESET);

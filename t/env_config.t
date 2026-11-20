@@ -10,6 +10,7 @@ my $root_dir = abs_path(dirname(__FILE__) . '/..');
 $ENV{CLAUDE_CURL} = "$root_dir/t/mock_curl.pl";
 $ENV{CLAUDE_CACERT} = "$root_dir/cacert.pem";
 
+system($^X, "$root_dir/build.pl") unless -f "$root_dir/code-agent.pl";
 require "$root_dir/code-agent.pl";
 
 # Test 1: get_env_file_path when both files are absent

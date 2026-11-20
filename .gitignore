@@ -1,3 +1,6 @@
+# Build artifacts
+code-agent.pl
+
 # Context generator cache
 .context_cache/
 

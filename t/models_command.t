@@ -10,6 +10,7 @@ $ENV{CLAUDE_CURL} = "$root_dir/t/mock_curl.pl";
 $ENV{CLAUDE_CACERT} = "$root_dir/cacert.pem";
 $ENV{MOCK_CURL_LOG} = "$root_dir/t/test_mock_curl.log";
 
+system($^X, "$root_dir/build.pl") unless -f "$root_dir/code-agent.pl";
 require "$root_dir/code-agent.pl";
 
 sub make_input_pipe {

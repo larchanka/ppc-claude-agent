@@ -13,6 +13,7 @@ $ENV{MOCK_CURL_LOG} = "$root_dir/t/test_mock_curl.log";
 # Ensure CLAUDE_AUTO_MODE is clean for default test
 delete $ENV{CLAUDE_AUTO_MODE};
 
+system($^X, "$root_dir/build.pl") unless -f "$root_dir/code-agent.pl";
 require "$root_dir/code-agent.pl";
 
 # ==================================================================

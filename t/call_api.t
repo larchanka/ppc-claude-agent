@@ -11,6 +11,7 @@ $ENV{CLAUDE_CACERT} = "$root_dir/cacert.pem";
 $ENV{MOCK_CURL_LOG} = "$root_dir/t/test_mock_curl.log";
 $ENV{MOCK_CURL_REQ_CHECK} = "$root_dir/t/test_mock_curl_req.log";
 
+system($^X, "$root_dir/build.pl") unless -f "$root_dir/code-agent.pl";
 require "$root_dir/code-agent.pl";
 
 sub read_file_content {
