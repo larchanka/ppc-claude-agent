@@ -48,6 +48,10 @@ A recursive-descent JSON parser and encoder tailored for standard Perl scalars, 
 - `_render_menu_lines($models, $cursor, $window_start, $page_size, $current_model, $num_buf)`: Formats paginated windowed model list and status line for terminal rendering.
 - `handle_models_command($in_fh, $out_fh)`: Command handler for `/models` slash command, coordinating fetch, selection, and model switching.
 - `show_help($out_fh)`: Displays available slash commands and descriptions.
+- `handle_auto_command($out_fh)`: Command handler for `/auto` slash command, setting `$AUTO_MODE = 1` and printing confirmation.
+- `handle_manual_command($out_fh)`: Command handler for `/manual` slash command, setting `$AUTO_MODE = 0` and printing confirmation.
+- `get_auto_mode()`: Returns current autonomous mode status (`0` or `1`).
+- `set_auto_mode($val)`: Sets `$AUTO_MODE` (`1` if truthy, `0` otherwise) and returns the normalized value.
 
 #### Request & Response Construction
 - `build_headers()`: Returns array of HTTP headers tailored to current provider (e.g. `x-api-key`, `anthropic-version`, `x-goog-api-key`, `Authorization`).
@@ -73,9 +77,10 @@ A recursive-descent JSON parser and encoder tailored for standard Perl scalars, 
 
 #### Network & Tool Execution
 - `call_api($url, $headers_ref, $body_json, $method)`: Executes bundled `curl` with SSL certificate bundle for POST or GET requests and returns HTTP response body.
-- `confirm($prompt)`: Displays a `[y/N]` prompt requiring affirmative user consent before executing side effects.
+- `confirm($prompt)`: Displays an interactive `[y/N]` prompt requiring affirmative user consent.
+- `confirm_tool($prompt)`: Tool permission gate returning `1` if `$AUTO_MODE` is enabled, or delegating to `confirm($prompt)` in manual mode.
 - `slow_print($text)`: Prints output with simulated typewriter delay for vintage terminal ambiance.
-- `run_tool($name, $input)`: Executes requested agent tools (`read_file`, `write_file`, `list_dir`, `run_shell`).
+- `run_tool($name, $input)`: Executes requested agent tools (`read_file`, `write_file`, `list_dir`, `run_shell`), gating side effects through `confirm_tool()`.
 
 ---
 
