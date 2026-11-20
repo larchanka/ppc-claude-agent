@@ -8,7 +8,7 @@ cd "$(dirname "$0")"
 set -e
 
 echo "=================================================="
-echo " Claude Agent for PowerPC Mac - Installer"
+echo " Code Agent for PowerPC Mac - Installer"
 echo "=================================================="
 echo ""
 

@@ -1,4 +1,4 @@
-AI Agent for PowerPC Mac (Tiger / 10.4)
+Code Agent for PowerPC Mac (Tiger / 10.4)
 ============================================
 
 HOW TO INSTALL

@@ -1,19 +1,19 @@
-# ppc-claude-agent
+# Code Agent
 
 <p align="center">
   <pre>
-   _____ _                 _         ___                    _   
-  / ____| |               | |       / _ \                  | |  
- | |    | | __ _ _   _  __| | ___  / /_\ \ __ _  ___ _ __  | |_ 
- | |    | |/ _` | | | |/ _` |/ _ \ |  _  |/ _` |/ _ \ '_ \ | __|
- | |____| | (_| | |_| | (_| |  __/ | | | | (_| |  __/ | | || |_ 
-  \_____|_|\__,_|\__,_|\__,_|\___| \_| |_/\__, |\___|_| |_| \__|
-                                           __/ |                
-                                          |___/                 
+   _____          _         ___                    _   
+  / ____|        | |       / _ \                  | |  
+ | |     ___   __| | ___  / /_\ \ __ _  ___ _ __  | |_ 
+ | |    / _ \ / _` |/ _ \ |  _  |/ _` |/ _ \ '_ \ | __|
+ | |___| (_) | (_| |  __/ | | | | (_| |  __/ | | || |_ 
+  \_____\___/ \__,_|\___| \_| |_/\__, |\___|_| |_| \__|
+                                  __/ |                
+                                 |___/                 
   </pre>
-  <b>Modern Agentic AI for Vintage PowerPC Macs (Mac OS X 10.4 Tiger)</b>
+  <b>Code AI Agent for Vintage PowerPC Macs (Mac OS X 10.4 Tiger)</b>
   <br>
-  <i>Bring Claude, Gemini, and Local LLMs to your vintage iBook, PowerBook, iMac, and Power Mac.</i>
+  <i>Autonomous terminal coding agent powered by Claude, Gemini, and Local LLMs for your vintage iBook, PowerBook, iMac, and Power Mac.</i>
 </p>
 
 <p align="center">
@@ -29,11 +29,11 @@
 
 ## 📖 Overview
 
-**ppc-claude-agent** is a self-contained, interactive terminal AI agent created specifically for vintage PowerPC Macintosh computers running **Mac OS X 10.4 Tiger**.
+**Code Agent** is a self-contained, interactive terminal AI agent created specifically for vintage PowerPC Macintosh computers running **Mac OS X 10.4 Tiger**.
 
 Vintage Macs are wonderful pieces of industrial design and distraction-free computing, but browsing the modern web and interfacing with cloud services is notoriously difficult. Mac OS X 10.4's bundled OpenSSL and `curl` only support SSLv3 and TLS 1.0, making it impossible to connect to modern HTTPS APIs. Furthermore, running modern language toolchains (Python 3, Node.js, Rust, or modern Perl) on Tiger requires hours of complex compilation or broken package managers.
 
-**ppc-claude-agent solves this completely:**
+**Code Agent solves this completely:**
 - **Zero CPAN Dependencies**: 100% pure Perl standard library that runs out of the box on stock **Perl 5.8.6** in OS X 10.4.
 - **Embedded `MiniJSON` Engine**: Built-in recursive-descent JSON parser and encoder; no external modules required.
 - **Bundled Modern TLS `curl`**: Includes a prebuilt, statically-linked PowerPC `curl` binary with OpenSSL 1.0.2u supporting **TLS 1.2 & TLS 1.3**, alongside a current Mozilla `cacert.pem` root certificate bundle.
@@ -56,7 +56,7 @@ In the Finder, simply **double-click** `Install.command`:
 
 ```
 ==================================================
- Claude Agent for PowerPC Mac - Installer
+ Code Agent for PowerPC Mac - Installer
 ==================================================
 
 Installing curl (TLS 1.2/1.3 capable, prebuilt for PowerPC Tiger)...
@@ -99,7 +99,7 @@ While in the agent prompt (`User> `), use these commands at any time:
 
 ## 🛠️ Agent Tools & Capabilities
 
-The agent is equipped with native tools that allow it to act as an autonomous coding and system assistant on your Mac:
+Code Agent is equipped with native tools that allow it to act as an autonomous coding and system assistant on your Mac:
 
 - **`read_file`**: Read file contents with automatic UTF-8 decoding.
 - **`write_file`**: Create or overwrite files on the filesystem.
