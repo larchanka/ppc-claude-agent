@@ -62,6 +62,11 @@ A recursive-descent JSON parser and encoder tailored for standard Perl scalars, 
 - `archive_session($session)`: Lifecycle extension hook for future persistence / session resume before resetting context.
 - `handle_new_command($out_fh, $session)`: Command handler for `/new` slash command; archives existing session, initializes a fresh session, and prints confirmation.
 
+#### Context & Instruction Management
+- `read_agents_file($path)`: Reads an `AGENTS.md` file safely, decoding UTF-8 and returning empty string on missing, unreadable, or non-regular files.
+- `get_agents_context([$home_dir, $cwd])`: Discovers global (`~/.agents/AGENTS.md`) and local (`./AGENTS.md`) instructions, deduplicating identical files via device/inode check, and formats them into labeled markdown sections.
+- `get_effective_system_prompt([$base_prompt, $home_dir, $cwd])`: Composes base system prompt with discovered `AGENTS.md` instructions, returning base prompt unchanged if no instructions exist.
+
 #### Request & Response Construction
 - `build_headers()`: Returns array of HTTP headers tailored to current provider (e.g. `x-api-key`, `anthropic-version`, `x-goog-api-key`, `Authorization`).
 - `build_request($messages_ref, $tools_ref, $system_prompt)`: Dispatches to provider-specific request builder.

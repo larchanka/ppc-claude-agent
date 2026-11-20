@@ -108,7 +108,7 @@ graph TD
 
 1. **User Input**: The user enters a prompt at `User> `. Characters are read one-by-one in raw mode, handling VT100 control codes and UTF-8 multibyte sequences.
 2. **Context Assembly**: The prompt is appended to `$CURRENT_SESSION->{messages}` (managed by the session subsystem). Typing `/new` triggers `handle_new_command()`, archiving the old session and resetting `$CURRENT_SESSION` with a clean history without restarting the agent.
-3. **Request Serialization**: `build_request()` translates `$CURRENT_SESSION->{messages}`, available `@TOOLS`, and the `$SYSTEM_PROMPT` into the appropriate provider format and encodes it with `MiniJSON::encode()`.
+3. **Request Serialization**: `build_request()` translates `$CURRENT_SESSION->{messages}`, available `@TOOLS`, and the effective system prompt (composed dynamically from `$SYSTEM_PROMPT` and discovered `AGENTS.md` instructions via `get_effective_system_prompt()`) into the appropriate provider format and encodes it with `MiniJSON::encode()`.
 4. **Transport**: `call_api()` spawns `curl` with `--cacert cacert.pem` to POST the payload to the provider endpoint over TLS 1.2/1.3.
 5. **Response Parsing**: The returned JSON is parsed with `MiniJSON::decode()` and normalized by `parse_response()` into text blocks or `tool_use` events.
 6. **Execution / Feedback**:
