@@ -13,6 +13,7 @@ use strict;
 use warnings;
 use utf8;
 use Encode qw(decode encode FB_DEFAULT);
+use POSIX qw(WNOHANG);
 
 # Explicitly handle screen output as UTF-8.
 binmode STDOUT, ':encoding(UTF-8)';
@@ -76,6 +77,20 @@ if (!-t STDOUT || exists $ENV{NO_COLOR}) {
     $COLOR_DIM   = '';
 }
 
+sub cursor_hide {
+    my $is_tty = defined $ENV{CLAUDE_TEST_TTY} ? $ENV{CLAUDE_TEST_TTY} : -t STDOUT;
+    print "\x1b[?25l" if $is_tty;
+}
+
+sub cursor_show {
+    my $is_tty = defined $ENV{CLAUDE_TEST_TTY} ? $ENV{CLAUDE_TEST_TTY} : -t STDOUT;
+    print "\x1b[?25h" if $is_tty;
+}
+
+END {
+    cursor_show();
+}
+
 # Provider switching. CLAUDE_PROVIDER=gemini uses the Gemini API free tier with no
 # credit card required (default is Anthropic). Can also be switched during conversation
 # via /claude or /gemini (see configure_provider below).
@@ -88,6 +103,7 @@ our $AUTO_MODE = $ENV{CLAUDE_AUTO_MODE} ? 1 : 0;
 # Active conversation session and monotonic ID sequence counter.
 our $CURRENT_SESSION = undef;
 our $SESSION_COUNTER = 0;
+our $LAST_API_ELAPSED = 0;
 
 # (Re)configures $API_KEY, $MODEL, $API_URL, etc. according to $provider.
 # Called at startup and by /claude and /gemini commands during conversation.
@@ -337,6 +353,7 @@ sub call_api {
     my $tmp_req    = "/tmp/code-agent-req-$$.json";
     my $tmp_resp   = "/tmp/code-agent-resp-$$.json";
     my $tmp_config = "/tmp/code-agent-curlcfg-$$.txt";
+    my $tmp_status = "/tmp/code-agent-status-$$.txt";
 
     if ($has_body) {
         open(my $fh, '>:encoding(UTF-8)', $tmp_req) or die "cannot write $tmp_req: $!\n";
@@ -363,9 +380,69 @@ sub call_api {
     print $cf qq(show-error\n);
     close $cf;
 
-    my $http_code = `@{[quote($CURL)]} -K @{[quote($tmp_config)]}`;
+    my $start_time = time();
+    my $http_code = '';
+    my $is_tty = defined $ENV{CLAUDE_TEST_TTY} ? $ENV{CLAUDE_TEST_TTY} : -t STDOUT;
+    my $use_live_timer = ($is_tty && $has_body) ? 1 : 0;
+
+    if ($use_live_timer) {
+        my $pid = fork();
+        if (!defined $pid) {
+            # fork failed: fall back safely to synchronous execution
+            $http_code = `@{[quote($CURL)]} -K @{[quote($tmp_config)]}`;
+        }
+        elsif ($pid == 0) {
+            # child: redirect stdout to status file for curl's write-out http code
+            open(STDOUT, '>', $tmp_status) or POSIX::_exit(1);
+            if (-x $CURL) {
+                exec($CURL, '-K', $tmp_config);
+            }
+            else {
+                exec('/bin/sh', '-c', quote($CURL) . ' -K ' . quote($tmp_config));
+            }
+            POSIX::_exit(127);
+        }
+        else {
+            # parent: display live ticking timer
+            local $| = 1;
+            my $last_sec = -1;
+            while (1) {
+                my $kid = waitpid($pid, WNOHANG);
+                if ($kid == $pid || $kid == -1) {
+                    last;
+                }
+                my $elapsed = int(time() - $start_time);
+                $elapsed = 1 if $elapsed < 1;
+                if ($elapsed != $last_sec) {
+                    print "\r\033[K" . format_thinking_status($elapsed);
+                    $last_sec = $elapsed;
+                }
+                select(undef, undef, undef, 0.2);
+            }
+            if (-f $tmp_status) {
+                if (open(my $sf, '<', $tmp_status)) {
+                    $http_code = <$sf>;
+                    close $sf;
+                }
+                unlink $tmp_status;
+            }
+        }
+    }
+    else {
+        # Non-TTY or disabled: synchronous execution
+        $http_code = `@{[quote($CURL)]} -K @{[quote($tmp_config)]}`;
+    }
+
+    $http_code = '' unless defined $http_code;
+    chomp $http_code;
+    $http_code =~ s/^\s+|\s+$//g;
+
+    $LAST_API_ELAPSED = int(time() - $start_time);
+    $LAST_API_ELAPSED = 1 if $LAST_API_ELAPSED < 1;
+
     unlink $tmp_req if $has_body;
     unlink $tmp_config;
+    unlink $tmp_status if -e $tmp_status;
 
     # For the same reason as STDIN (see comments at top), we do not use the
     # :encoding(UTF-8) layer here. In Perl 5.8.6, PerlIO :encoding(UTF-8) can split
@@ -373,11 +450,15 @@ sub call_api {
     # containing multibyte characters, causing "utf8 does not map to Unicode"
     # warnings and text corruption. Reading all raw bytes first and decoding them
     # together at the end avoids this issue.
-    open(my $rf, '<', $tmp_resp) or die "cannot read response: $!\n";
-    local $/;
-    my $resp_body_bytes = <$rf>;
-    close $rf;
-    unlink $tmp_resp;
+    my $resp_body_bytes = '';
+    if (-f $tmp_resp) {
+        if (open(my $rf, '<', $tmp_resp)) {
+            local $/;
+            $resp_body_bytes = <$rf>;
+            close $rf;
+        }
+        unlink $tmp_resp;
+    }
     my $resp_body = decode('UTF-8', $resp_body_bytes, FB_DEFAULT);
 
     if ($http_code !~ /^2/) {
@@ -421,11 +502,30 @@ sub build_request {
 
 sub build_request_anthropic {
     my ($messages, $tools, $system) = @_;
+
+    my @sanitized;
+    for my $msg (@$messages) {
+        if (!ref $msg->{content}) {
+            push @sanitized, $msg;
+            next;
+        }
+        my @filtered_blocks;
+        for my $block (@{ $msg->{content} }) {
+            if (ref $block eq 'HASH' && defined $block->{type} && $block->{type} eq 'thinking') {
+                # Anthropic API requires a cryptographic signature for thinking blocks.
+                # Omit unsigned thinking blocks (e.g. from Gemini or OpenAI).
+                next unless defined $block->{signature} && $block->{signature} ne '';
+            }
+            push @filtered_blocks, $block;
+        }
+        push @sanitized, { %$msg, content => \@filtered_blocks };
+    }
+
     return {
         model      => $MODEL,
         max_tokens => $MAX_TOKENS,
         system     => $system,
-        messages   => $messages,
+        messages   => \@sanitized,
         tools      => $tools,
     };
 }
@@ -585,6 +685,12 @@ sub parse_response_openai {
     die "API error: no choices in response: " . MiniJSON::encode($resp) . "\n" unless $msg;
 
     my @blocks;
+    if (defined $msg->{reasoning_content} && $msg->{reasoning_content} ne '') {
+        push @blocks, { type => 'thinking', text => $msg->{reasoning_content} };
+    }
+    elsif (defined $msg->{reasoning} && $msg->{reasoning} ne '') {
+        push @blocks, { type => 'thinking', text => $msg->{reasoning} };
+    }
     if (defined $msg->{content} && $msg->{content} ne '') {
         push @blocks, { type => 'text', text => $msg->{content} };
     }
@@ -620,13 +726,14 @@ sub parse_response_gemini {
     my @blocks;
     for my $part (@{ ($candidate && $candidate->{content}{parts}) || [] }) {
         # When Gemini uses thinking, parts representing intermediate thought processes
-        # may be returned in the response (flagged with thought: true).
-        # These are internal drafts rather than final responses for the user;
-        # passing them through causes draft revisions to appear directly on screen
-        # as thoughts evolve (reported on physical PowerBook G4).
-        # This is separate from thoughtSignature (signature for continuation),
-        # so we simply skip these parts and take only final response parts.
-        next if $part->{thought};
+        # are flagged with thought: true. We normalize them to thinking blocks
+        # so live thinking visuals can report elapsed time without spewing raw drafts.
+        if ($part->{thought}) {
+            my $block = { type => 'thinking', text => (defined $part->{text} ? $part->{text} : '') };
+            $block->{thought_signature} = $part->{thoughtSignature} if defined $part->{thoughtSignature};
+            push @blocks, $block;
+            next;
+        }
         if (defined $part->{text}) {
             my $block = { type => 'text', text => $part->{text} };
             $block->{thought_signature} = $part->{thoughtSignature} if defined $part->{thoughtSignature};
@@ -649,6 +756,15 @@ sub parse_response_gemini {
         }
     }
     return @blocks;
+}
+
+sub has_thinking_block {
+    my ($blocks) = @_;
+    return 0 unless ref $blocks eq 'ARRAY';
+    for my $b (@$blocks) {
+        return 1 if ref $b eq 'HASH' && defined $b->{type} && $b->{type} eq 'thinking';
+    }
+    return 0;
 }
 
 # --- Provider model discovery & schema adapters ---
@@ -958,6 +1074,8 @@ sub select_model_interactive {
         return _select_model_nontty(\@models, $current_model, $in_fh, $out_fh);
     }
 
+    cursor_show();
+
     my $orig_stty;
     if ($is_tty) {
         $orig_stty = `stty -g 2>/dev/null`;
@@ -1061,6 +1179,7 @@ sub select_model_interactive {
     print $out_fh "\r\n";
 
     die $eval_err if $eval_err;
+    cursor_hide();
     return $selected_id;
 }
 
@@ -1451,6 +1570,7 @@ sub _maybe_save_gemini_key {
 # Return value: input string (raw bytes, without newline). undef on cancel.
 sub read_secret_or_cancel {
     my ($prompt) = @_;
+    cursor_show();
     print $prompt;
 
     my $orig_stty = `stty -g`;
@@ -1481,6 +1601,7 @@ sub read_secret_or_cancel {
 
     system('stty', $orig_stty) if defined $orig_stty && $orig_stty ne '';
     print "\n";
+    cursor_hide();
     return $cancelled ? undef : $buf;
 }
 
@@ -1766,6 +1887,8 @@ sub read_secret_or_cancel {
         my ($prompt, $use_history, $color) = @_;
         $use_history = 1 unless defined $use_history;
         $color = '' unless defined $color;
+
+        cursor_show();
 
         my $orig_stty = `stty -g`;
         chomp $orig_stty;
@@ -2104,6 +2227,7 @@ sub read_secret_or_cancel {
         if ($use_history && defined $result && $result ne '') {
             push @HISTORY, $result;
         }
+        cursor_hide();
         return $result;
     }
 }
@@ -2214,6 +2338,25 @@ sub format_tool_call {
         return "$COLOR_DIM$summary$COLOR_RESET";
     }
     return $summary;
+}
+
+sub format_thinking_status {
+    my ($elapsed) = @_;
+    $elapsed = 1 if !defined $elapsed || $elapsed < 1;
+    my $text = "* Thinking ${elapsed}s...";
+    if (defined $COLOR_DIM && $COLOR_DIM ne '') {
+        return "$COLOR_DIM$text$COLOR_RESET";
+    }
+    return $text;
+}
+
+sub finalize_thinking_line {
+    my ($elapsed) = @_;
+    return "\r" . format_thinking_status($elapsed) . "\n";
+}
+
+sub clear_thinking_line {
+    return "\r\033[K";
 }
 
 sub run_tool {
@@ -2436,13 +2579,31 @@ while (1) {
 
     while (1) {
         my $body = build_request($session->{messages}, \@TOOLS, $SYSTEM_PROMPT);
-        my $resp = call_api($API_URL, build_headers(), MiniJSON::encode($body));
-
-        my @content_blocks = eval { parse_response($resp) };
+        my $resp = eval { call_api($API_URL, build_headers(), MiniJSON::encode($body)) };
         if ($@) {
+            print clear_thinking_line() if -t STDOUT;
+            cursor_show();
             print $@;
             last;
         }
+
+        my @content_blocks = eval { parse_response($resp) };
+        if ($@) {
+            print clear_thinking_line() if -t STDOUT;
+            cursor_show();
+            print $@;
+            last;
+        }
+
+        if (-t STDOUT) {
+            if (has_thinking_block(\@content_blocks)) {
+                print finalize_thinking_line($LAST_API_ELAPSED);
+            }
+            else {
+                print clear_thinking_line();
+            }
+        }
+
         push @{$session->{messages}}, { role => 'assistant', content => \@content_blocks };
 
         my @tool_results;
@@ -2474,6 +2635,7 @@ while (1) {
 }
 
 print "\nGoodbye.\n";
+cursor_show();
 }
 
 1;
