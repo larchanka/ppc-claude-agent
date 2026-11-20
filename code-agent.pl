@@ -1,4 +1,5 @@
 #!/usr/bin/perl
+# --- BEGIN src/header.pl ---
 # code-agent.pl — Self-contained Claude API agent for iBook G4
 # (Mac OS X 10.4 Tiger, Perl 5.8.6). Has no external CPAN module dependencies.
 #
@@ -142,33 +143,6 @@ sub configure_provider {
     $PROVIDER = $provider;
 }
 
-unless (caller) {
-    load_env_file();
-
-    # Determine provider: if not explicitly specified, use Anthropic if key exists,
-    # otherwise Gemini (free tier; new users are guided here).
-    my $_want_provider = $ENV{CLAUDE_PROVIDER};
-    if (!defined $_want_provider || $_want_provider eq '') {
-        $_want_provider = $ENV{ANTHROPIC_API_KEY} ? 'anthropic' : 'gemini';
-    }
-    unless (eval { configure_provider($_want_provider); 1 }) {
-        my $err = $@ || "Configuration error\n";
-        # Only when launched without a Gemini key, guide user through obtaining one with steps.
-        # Otherwise (Anthropic key unset, unknown provider, etc.), die as usual.
-        if ($_want_provider eq 'gemini' && !$ENV{GEMINI_API_KEY}) {
-            my $key = gemini_key_setup();
-            unless (defined $key && $key ne '') {
-                print "\nNo API key was set, so exiting.\n";
-                exit 1;
-            }
-            $ENV{GEMINI_API_KEY} = $key;
-            configure_provider('gemini');
-        }
-        else {
-            die $err;
-        }
-    }
-}
 
 our $SYSTEM_PROMPT = <<'EOS';
 You are a lightweight coding assistant running in the terminal of a
@@ -206,6 +180,9 @@ explicit y/N confirmation, so retries are especially disruptive here):
   legacy `urllib`/`urllib2` modules instead).
 EOS
 
+# --- END src/header.pl ---
+
+# --- BEGIN src/json.pl ---
 # --- Minimal JSON encoder/decoder (zero dependencies, recursive descent) ---
 package MiniJSON;
 
@@ -340,6 +317,9 @@ sub _decode_string {
 }
 
 package main;
+# --- END src/json.pl ---
+
+# --- BEGIN src/transport.pl ---
 
 # --- curl invocation (TLS 1.2/1.3 toolchain curl) ---
 sub call_api {
@@ -473,6 +453,9 @@ sub quote {
     $s =~ s/'/'\\''/g;
     return "'$s'";
 }
+# --- END src/transport.pl ---
+
+# --- BEGIN src/providers.pl ---
 
 # --- Provider-specific request building and response parsing ---
 # Conversation history (@messages) is kept internally in Anthropic content blocks format
@@ -918,6 +901,9 @@ sub _fetch_models_openai {
     return \@models;
 }
 
+# --- END src/providers.pl ---
+
+# --- BEGIN src/models_menu.pl ---
 # --- Interactive model selection UI ---
 our $FORCE_RAW = 0;
 
@@ -1182,6 +1168,9 @@ sub select_model_interactive {
     cursor_hide();
     return $selected_id;
 }
+# --- END src/models_menu.pl ---
+
+# --- BEGIN src/session.pl ---
 
 sub get_current_model {
     return $MODEL;
@@ -1308,6 +1297,9 @@ sub handle_models_command {
     return $MODEL;
 }
 
+# --- END src/session.pl ---
+
+# --- BEGIN src/tools.pl ---
 # --- Tool definitions and tool execution ---
 our @TOOLS = (
     {
@@ -1387,20 +1379,6 @@ sub confirm_tool {
 # CLAUDE_TYPE_DELAY (seconds per char) adjusts speed; setting to 0 restores
 # immediate display (original behavior). Pauses slightly longer on newlines.
 # select(undef,undef,undef,$t) is a fractional second sleep without Time::HiRes.
-sub slow_print {
-    my ($text) = @_;
-    my $delay = $ENV{CLAUDE_TYPE_DELAY};
-    $delay = 0.006 unless defined $delay && $delay ne '';
-    $delay = 0 + $delay;
-    if ($delay <= 0) {
-        print $text;
-        return;
-    }
-    for my $ch (split //, $text) {
-        print $ch;
-        select(undef, undef, undef, $ch eq "\n" ? $delay * 12 : $delay);
-    }
-}
 
 # --- Gemini API key setup helper ---
 # Displays numbered steps, optionally opens the page in a browser, and validates
@@ -1604,6 +1582,119 @@ sub read_secret_or_cancel {
     cursor_hide();
     return $cancelled ? undef : $buf;
 }
+
+sub run_tool {
+    my ($name, $input) = @_;
+
+    # The return value of run_tool is not shown directly to user, but sent to the model
+    # as tool_result log. The user only directly sees the confirm() prompt.
+    if ($name eq 'read_file') {
+        my $path = $input->{path};
+        if (defined $input->{start_line} && defined $input->{end_line} && $input->{start_line} > $input->{end_line}) {
+            return "Error: start_line ($input->{start_line}) cannot be greater than end_line ($input->{end_line})";
+        }
+        open(my $fh, '<:encoding(UTF-8)', $path) or return "Error: cannot open $path: $!";
+        if (!defined $input->{start_line} && !defined $input->{end_line}) {
+            local $/;
+            my $content = <$fh>;
+            close $fh;
+            return defined $content ? $content : '';
+        }
+        my @lines = <$fh>;
+        close $fh;
+
+        my $total = scalar @lines;
+        my $start = defined $input->{start_line} ? int($input->{start_line}) : 1;
+        my $end   = defined $input->{end_line}   ? int($input->{end_line})   : $total;
+
+        $start = 1 if $start < 1;
+        $end   = $total if $end > $total;
+
+        return '' if $start > $total || $start > $end;
+
+        return join('', @lines[ ($start - 1) .. ($end - 1) ]);
+    }
+    elsif ($name eq 'write_file') {
+        my $path = $input->{path};
+        unless (confirm_tool("Write to file '$path'?")) {
+            return "Cancelled by user.";
+        }
+        open(my $fh, '>:encoding(UTF-8)', $path) or return "Error: cannot write $path: $!";
+        print $fh $input->{content};
+        close $fh;
+        return "Write complete: $path";
+    }
+    elsif ($name eq 'edit_file') {
+        my $path = $input->{path};
+        my $content = defined $input->{content} ? $input->{content}
+                    : defined $input->{replacement} ? $input->{replacement}
+                    : '';
+        my $start_line = defined $input->{start_line} ? int($input->{start_line}) : 1;
+        my $end_line   = defined $input->{end_line}   ? int($input->{end_line})   : 0;
+
+        if ($start_line < 1) {
+            return "Error: invalid start_line ($start_line): must be >= 1";
+        }
+
+        open(my $fh, '<:encoding(UTF-8)', $path) or return "Error: cannot open $path: $!";
+        my @lines = <$fh>;
+        close $fh;
+
+        my $total = scalar @lines;
+        if ($start_line > $total + 1) {
+            return "Error: start_line ($start_line) exceeds total lines ($total) + 1";
+        }
+        if ($end_line < $start_line - 1) {
+            return "Error: end_line ($end_line) cannot be less than start_line - 1 (" . ($start_line - 1) . ")";
+        }
+
+        $end_line = $total if $end_line > $total;
+
+        unless (confirm_tool("Edit file '$path' (lines $start_line-$end_line)?")) {
+            return "Cancelled by user.";
+        }
+
+        $content .= "\n" if $content ne '' && $content !~ /\n\z/;
+
+        my $offset = $start_line - 1;
+        my $length = $end_line >= $start_line ? ($end_line - $start_line + 1) : 0;
+
+        if ($content eq '') {
+            splice(@lines, $offset, $length);
+        }
+        else {
+            splice(@lines, $offset, $length, $content);
+        }
+
+        open(my $out_fh, '>:encoding(UTF-8)', $path) or return "Error: cannot write $path: $!";
+        print $out_fh @lines;
+        close $out_fh;
+
+        return "Edit complete: $path";
+    }
+    elsif ($name eq 'list_dir') {
+        my $path = $input->{path} || '.';
+        opendir(my $dh, $path) or return "Error: cannot open $path: $!";
+        my @entries = sort grep { $_ ne '.' && $_ ne '..' } readdir($dh);
+        closedir $dh;
+        return join("\n", @entries);
+    }
+    elsif ($name eq 'run_shell') {
+        my $command = $input->{command};
+        unless (confirm_tool("Run this command: $command")) {
+            return "Cancelled by user.";
+        }
+        my $output = `$command 2>&1`;
+        return $output eq '' ? '(no output)' : $output;
+    }
+    else {
+        return "Unknown tool: $name";
+    }
+}
+
+# --- END src/tools.pl ---
+
+# --- BEGIN src/terminal.pl ---
 
 # --- Line editing (pure-Perl readline with arrow key support) ---
 # Standard <STDIN> lacks cursor movement. In raw mode via stty, we implement
@@ -2232,6 +2323,9 @@ sub read_secret_or_cancel {
     }
 }
 
+# --- END src/terminal.pl ---
+
+# --- BEGIN src/ui.pl ---
 # --- Tool Call Visual Formatting Helpers ---
 
 sub extract_basename {
@@ -2359,117 +2453,53 @@ sub clear_thinking_line {
     return "\r\033[K";
 }
 
-sub run_tool {
-    my ($name, $input) = @_;
 
-    # The return value of run_tool is not shown directly to user, but sent to the model
-    # as tool_result log. The user only directly sees the confirm() prompt.
-    if ($name eq 'read_file') {
-        my $path = $input->{path};
-        if (defined $input->{start_line} && defined $input->{end_line} && $input->{start_line} > $input->{end_line}) {
-            return "Error: start_line ($input->{start_line}) cannot be greater than end_line ($input->{end_line})";
-        }
-        open(my $fh, '<:encoding(UTF-8)', $path) or return "Error: cannot open $path: $!";
-        if (!defined $input->{start_line} && !defined $input->{end_line}) {
-            local $/;
-            my $content = <$fh>;
-            close $fh;
-            return defined $content ? $content : '';
-        }
-        my @lines = <$fh>;
-        close $fh;
-
-        my $total = scalar @lines;
-        my $start = defined $input->{start_line} ? int($input->{start_line}) : 1;
-        my $end   = defined $input->{end_line}   ? int($input->{end_line})   : $total;
-
-        $start = 1 if $start < 1;
-        $end   = $total if $end > $total;
-
-        return '' if $start > $total || $start > $end;
-
-        return join('', @lines[ ($start - 1) .. ($end - 1) ]);
+sub slow_print {
+    my ($text) = @_;
+    my $delay = $ENV{CLAUDE_TYPE_DELAY};
+    $delay = 0.006 unless defined $delay && $delay ne '';
+    $delay = 0 + $delay;
+    if ($delay <= 0) {
+        print $text;
+        return;
     }
-    elsif ($name eq 'write_file') {
-        my $path = $input->{path};
-        unless (confirm_tool("Write to file '$path'?")) {
-            return "Cancelled by user.";
-        }
-        open(my $fh, '>:encoding(UTF-8)', $path) or return "Error: cannot write $path: $!";
-        print $fh $input->{content};
-        close $fh;
-        return "Write complete: $path";
-    }
-    elsif ($name eq 'edit_file') {
-        my $path = $input->{path};
-        my $content = defined $input->{content} ? $input->{content}
-                    : defined $input->{replacement} ? $input->{replacement}
-                    : '';
-        my $start_line = defined $input->{start_line} ? int($input->{start_line}) : 1;
-        my $end_line   = defined $input->{end_line}   ? int($input->{end_line})   : 0;
-
-        if ($start_line < 1) {
-            return "Error: invalid start_line ($start_line): must be >= 1";
-        }
-
-        open(my $fh, '<:encoding(UTF-8)', $path) or return "Error: cannot open $path: $!";
-        my @lines = <$fh>;
-        close $fh;
-
-        my $total = scalar @lines;
-        if ($start_line > $total + 1) {
-            return "Error: start_line ($start_line) exceeds total lines ($total) + 1";
-        }
-        if ($end_line < $start_line - 1) {
-            return "Error: end_line ($end_line) cannot be less than start_line - 1 (" . ($start_line - 1) . ")";
-        }
-
-        $end_line = $total if $end_line > $total;
-
-        unless (confirm_tool("Edit file '$path' (lines $start_line-$end_line)?")) {
-            return "Cancelled by user.";
-        }
-
-        $content .= "\n" if $content ne '' && $content !~ /\n\z/;
-
-        my $offset = $start_line - 1;
-        my $length = $end_line >= $start_line ? ($end_line - $start_line + 1) : 0;
-
-        if ($content eq '') {
-            splice(@lines, $offset, $length);
-        }
-        else {
-            splice(@lines, $offset, $length, $content);
-        }
-
-        open(my $out_fh, '>:encoding(UTF-8)', $path) or return "Error: cannot write $path: $!";
-        print $out_fh @lines;
-        close $out_fh;
-
-        return "Edit complete: $path";
-    }
-    elsif ($name eq 'list_dir') {
-        my $path = $input->{path} || '.';
-        opendir(my $dh, $path) or return "Error: cannot open $path: $!";
-        my @entries = sort grep { $_ ne '.' && $_ ne '..' } readdir($dh);
-        closedir $dh;
-        return join("\n", @entries);
-    }
-    elsif ($name eq 'run_shell') {
-        my $command = $input->{command};
-        unless (confirm_tool("Run this command: $command")) {
-            return "Cancelled by user.";
-        }
-        my $output = `$command 2>&1`;
-        return $output eq '' ? '(no output)' : $output;
-    }
-    else {
-        return "Unknown tool: $name";
+    for my $ch (split //, $text) {
+        print $ch;
+        select(undef, undef, undef, $ch eq "\n" ? $delay * 12 : $delay);
     }
 }
 
-# --- Conversation loop ---
+# --- END src/ui.pl ---
+
+# --- BEGIN src/main.pl ---
+# --- Main entrypoint & Conversation loop ---
 unless (caller) {
+    load_env_file();
+
+    # Determine provider: if not explicitly specified, use Anthropic if key exists,
+    # otherwise Gemini (free tier; new users are guided here).
+    my $_want_provider = $ENV{CLAUDE_PROVIDER};
+    if (!defined $_want_provider || $_want_provider eq '') {
+        $_want_provider = $ENV{ANTHROPIC_API_KEY} ? 'anthropic' : 'gemini';
+    }
+    unless (eval { configure_provider($_want_provider); 1 }) {
+        my $err = $@ || "Configuration error\n";
+        # Only when launched without a Gemini key, guide user through obtaining one with steps.
+        # Otherwise (Anthropic key unset, unknown provider, etc.), die as usual.
+        if ($_want_provider eq 'gemini' && !$ENV{GEMINI_API_KEY}) {
+            my $key = gemini_key_setup();
+            unless (defined $key && $key ne '') {
+                print "\nNo API key was set, so exiting.\n";
+                exit 1;
+            }
+            $ENV{GEMINI_API_KEY} = $key;
+            configure_provider('gemini');
+        }
+        else {
+            die $err;
+        }
+    }
+
 get_current_session();
 
 print "\e[7mCode AI-Agent\e[0m\n";
@@ -2636,6 +2666,9 @@ while (1) {
 
 print "\nGoodbye.\n";
 cursor_show();
+
 }
 
 1;
+# --- END src/main.pl ---
+

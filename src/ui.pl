@@ -1,0 +1,143 @@
+# --- Tool Call Visual Formatting Helpers ---
+
+sub extract_basename {
+    my ($path) = @_;
+    return '' unless defined $path && length $path;
+    return '/' if $path =~ m{^/+$};
+    $path =~ s{/+$}{};
+    if ($path =~ m{([^/]+)$}) {
+        return $1;
+    }
+    return $path;
+}
+
+sub truncate_text {
+    my ($str, $max_len) = @_;
+    return '' unless defined $str;
+    $max_len = 20 unless defined $max_len;
+
+    my $clean = $str;
+    $clean =~ s/\s+/ /g;
+    $clean =~ s/^\s+|\s+$//g;
+
+    if (length($clean) > $max_len) {
+        return substr($clean, 0, $max_len) . '...';
+    }
+    return $clean;
+}
+
+sub _format_line_range {
+    my ($input) = @_;
+    return undef unless ref($input) eq 'HASH';
+    if (defined $input->{start_line} && defined $input->{end_line}) {
+        return "L$input->{start_line}-$input->{end_line}";
+    }
+    elsif (defined $input->{start_line}) {
+        return "L$input->{start_line}-";
+    }
+    elsif (defined $input->{end_line}) {
+        return "L1-$input->{end_line}";
+    }
+    return undef;
+}
+
+sub format_tool_summary {
+    my ($name, $input) = @_;
+    $name = '' unless defined $name;
+    $input = {} unless defined $input && ref($input) eq 'HASH';
+
+    my @parts = ($name);
+
+    if ($name eq 'read_file') {
+        my $base = extract_basename($input->{path});
+        push @parts, (length($base) ? $base : '?');
+        my $range = _format_line_range($input);
+        push @parts, $range if defined $range;
+    }
+    elsif ($name eq 'write_file') {
+        my $base = extract_basename($input->{path});
+        push @parts, (length($base) ? $base : '?');
+        if (defined $input->{content} && length($input->{content}) > 0) {
+            push @parts, truncate_text($input->{content}, 20);
+        }
+    }
+    elsif ($name eq 'edit_file') {
+        my $base = extract_basename($input->{path});
+        push @parts, (length($base) ? $base : '?');
+        my $range = _format_line_range($input);
+        push @parts, $range if defined $range;
+        my $rep = defined $input->{content} ? $input->{content}
+                : defined $input->{replacement} ? $input->{replacement}
+                : undef;
+        if (defined $rep && length($rep) > 0) {
+            push @parts, truncate_text($rep, 20);
+        }
+    }
+    elsif ($name eq 'run_shell') {
+        if (defined $input->{command} && length($input->{command}) > 0) {
+            push @parts, truncate_text($input->{command}, 20);
+        }
+    }
+    elsif ($name eq 'list_dir') {
+        my $target = (!defined $input->{path} || $input->{path} eq '' || $input->{path} eq '.')
+                   ? '.'
+                   : extract_basename($input->{path});
+        push @parts, $target;
+    }
+    else {
+        for my $k (sort keys %$input) {
+            my $v = $input->{$k};
+            if (defined $v && !ref($v) && length($v) > 0) {
+                push @parts, truncate_text($v, 20);
+                last;
+            }
+        }
+    }
+
+    return join('   ', @parts);
+}
+
+sub format_tool_call {
+    my ($name, $input) = @_;
+    my $summary = format_tool_summary($name, $input);
+    if (defined $COLOR_DIM && $COLOR_DIM ne '') {
+        return "$COLOR_DIM$summary$COLOR_RESET";
+    }
+    return $summary;
+}
+
+sub format_thinking_status {
+    my ($elapsed) = @_;
+    $elapsed = 1 if !defined $elapsed || $elapsed < 1;
+    my $text = "* Thinking ${elapsed}s...";
+    if (defined $COLOR_DIM && $COLOR_DIM ne '') {
+        return "$COLOR_DIM$text$COLOR_RESET";
+    }
+    return $text;
+}
+
+sub finalize_thinking_line {
+    my ($elapsed) = @_;
+    return "\r" . format_thinking_status($elapsed) . "\n";
+}
+
+sub clear_thinking_line {
+    return "\r\033[K";
+}
+
+
+sub slow_print {
+    my ($text) = @_;
+    my $delay = $ENV{CLAUDE_TYPE_DELAY};
+    $delay = 0.006 unless defined $delay && $delay ne '';
+    $delay = 0 + $delay;
+    if ($delay <= 0) {
+        print $text;
+        return;
+    }
+    for my $ch (split //, $text) {
+        print $ch;
+        select(undef, undef, undef, $ch eq "\n" ? $delay * 12 : $delay);
+    }
+}
+
