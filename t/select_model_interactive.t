@@ -9,7 +9,7 @@ my $root_dir = abs_path(dirname(__FILE__) . '/..');
 $ENV{CLAUDE_CURL} = "$root_dir/t/mock_curl.pl";
 $ENV{CLAUDE_CACERT} = "$root_dir/cacert.pem";
 
-require "$root_dir/claude-agent.pl";
+require "$root_dir/code-agent.pl";
 
 # Helper to create a pipe with given data written into it
 sub make_input_pipe {

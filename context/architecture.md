@@ -35,20 +35,22 @@ graph TD
         ToolExec --> ToolConfirm{"confirm_tool()<br/>($AUTO_MODE / /auto /manual)"}
         ToolConfirm -->|Approved / Auto| TF1["read_file"]
         ToolConfirm -->|Approved / Auto| TF2["write_file"]
-        ToolConfirm -->|Approved / Auto| TF3["list_dir"]
-        ToolConfirm -->|Approved / Auto| TF4["run_shell"]
+        ToolConfirm -->|Approved / Auto| TF3["edit_file"]
+        ToolConfirm -->|Approved / Auto| TF4["list_dir"]
+        ToolConfirm -->|Approved / Auto| TF5["run_shell"]
     end
     
     TF1 --> Loop
     TF2 --> Loop
     TF3 --> Loop
     TF4 --> Loop
+    TF5 --> Loop
 ```
 
 ## Subsystems & Layers
 
 ### 1. Presentation & Terminal I/O Layer
-- **Location**: [`claude-agent.pl`](../claude-agent.pl) (Lines 890–1494)
+- **Location**: [`code-agent.pl`](../code-agent.pl) (Lines 890–1494)
 - **Responsibilities**:
   - Raw terminal management using `stty raw -echo` and `stty cooked`.
   - ANSI / VT100 escape sequence handling (cursor position queries `\e[6n`, arrow keys, home/end, backspace).
@@ -57,7 +59,7 @@ graph TD
   - History tracking and prompt rendering.
 
 ### 2. Multi-Provider & Serialization Layer
-- **Location**: [`claude-agent.pl`](../claude-agent.pl) (Lines 52–106, 134–270, 345–640)
+- **Location**: [`code-agent.pl`](../code-agent.pl) (Lines 52–106, 134–270, 345–640)
 - **Responsibilities**:
   - `MiniJSON`: Zero-dependency recursive descent JSON parser and serializer.
   - Provider configurations for **Anthropic** (`claude-sonnet-4-5-20250929`), **Gemini** (`gemini-3.5-flash-lite`), and **OpenAI-compatible** local endpoints (e.g. Ollama, llama.cpp on LAN).
@@ -65,18 +67,19 @@ graph TD
   - Request schema translation between Anthropic's messages/tools format, Gemini's contents/functionDeclarations, and OpenAI's chat/completions format.
 
 ### 3. Network Transport Layer
-- **Location**: [`claude-agent.pl`](../claude-agent.pl) (Lines 272–344), [`curl`](../curl), [`cacert.pem`](../cacert.pem)
+- **Location**: [`code-agent.pl`](../code-agent.pl) (Lines 272–344), [`curl`](../curl), [`cacert.pem`](../cacert.pem)
 - **Responsibilities**:
-  - Execution of `$CLAUDE_CURL` (`/usr/local/claude-toolchain/bin/curl` or bundled `./curl`).
+  - Execution of `$CLAUDE_CURL` (`/usr/local/code-toolchain/bin/curl` or bundled `./curl`).
   - Strict certificate verification using bundled Mozilla `cacert.pem`.
   - Payload streaming and response capture via temporary files or pipes.
   - HTTP error code handling and retry guidance.
 
 ### 4. Autonomous Tool Execution & Safety Layer
-- **Location**: [`claude-agent.pl`](../claude-agent.pl) (Lines 57–60, 1046–1095, 1164–1172, 2040–2080)
+- **Location**: [`code-agent.pl`](../code-agent.pl) (Lines 57–60, 1046–1095, 1164–1172, 2040–2080)
 - **Responsibilities**:
-  - `read_file`: Reads file content in UTF-8.
-  - `write_file`: Writes content to local disk with permission checked via `confirm_tool()`.
+  - `read_file`: Reads file content in UTF-8, with optional 1-based inclusive `start_line` and `end_line` line slicing and bounds clamping.
+  - `write_file`: Overwrites whole file content on local disk with permission checked via `confirm_tool()`.
+  - `edit_file`: Replaces a specific line range (`start_line` through `end_line`, 1-based inclusive) with replacement content, deletes lines when content is empty, or inserts lines without deletion (`end_line = start_line - 1`), with bounds clamping and permission checked via `confirm_tool()`.
   - `list_dir`: Scans directory entries excluding `.` and `..`.
   - `run_shell`: Executes arbitrary shell commands via system backticks with permission checked via `confirm_tool()`.
   - `confirm_tool($prompt)`: Permission wrapper that returns `1` immediately when `$AUTO_MODE` is active; delegates to interactive `confirm($prompt)` when manual mode is active.

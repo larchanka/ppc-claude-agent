@@ -13,7 +13,7 @@ $ENV{MOCK_CURL_LOG} = "$root_dir/t/test_mock_curl.log";
 # Ensure CLAUDE_AUTO_MODE is clean for default test
 delete $ENV{CLAUDE_AUTO_MODE};
 
-require "$root_dir/claude-agent.pl";
+require "$root_dir/code-agent.pl";
 
 # ==================================================================
 # Task 1: Auto Mode State Management & confirm_tool Helper
@@ -82,11 +82,11 @@ is(get_auto_mode(), 0, "get_auto_mode() returns 0");
 
 # 6. Environment variable initialization
 {
-    my $cmd = qq{$^X -e 'delete \$ENV{CLAUDE_AUTO_MODE}; require "$root_dir/claude-agent.pl"; exit(get_auto_mode() == 0 ? 0 : 1);'};
+    my $cmd = qq{$^X -e 'delete \$ENV{CLAUDE_AUTO_MODE}; require "$root_dir/code-agent.pl"; exit(get_auto_mode() == 0 ? 0 : 1);'};
     my $status_default = system($cmd);
     is($status_default >> 8, 0, "Default initialization without env var is 0");
 
-    my $cmd_env = qq{$^X -e '\$ENV{CLAUDE_AUTO_MODE} = "1"; require "$root_dir/claude-agent.pl"; exit(get_auto_mode() == 1 ? 0 : 1);'};
+    my $cmd_env = qq{$^X -e '\$ENV{CLAUDE_AUTO_MODE} = "1"; require "$root_dir/code-agent.pl"; exit(get_auto_mode() == 1 ? 0 : 1);'};
     my $status_env = system($cmd_env);
     is($status_env >> 8, 0, "CLAUDE_AUTO_MODE=1 initializes auto mode to 1");
 }
@@ -231,7 +231,7 @@ unlink $test_file if -e $test_file;
 # 4. Integration: Main conversation loop routes /auto and /manual
 {
     my $perl = $^X;
-    my $script = "$root_dir/claude-agent.pl";
+    my $script = "$root_dir/code-agent.pl";
 
     my $cmd = qq{printf "/auto\\n/manual\\nexit\\n" | } .
               qq{ANTHROPIC_API_KEY="test-ant-key" CLAUDE_PROVIDER="anthropic" } .

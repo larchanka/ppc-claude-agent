@@ -7,11 +7,11 @@ This document inventories internal module relationships, system toolchains, bund
 ## Internal Dependency Graph
 
 - **Application Entrypoint**:
-  - [`claude-agent.pl`](../claude-agent.pl): Standalone agent. Invokes `curl` via shell/exec for HTTPS operations.
+  - [`code-agent.pl`](../code-agent.pl): Standalone agent. Invokes `curl` via shell/exec for HTTPS operations.
 - **Installer Entrypoint**:
-  - [`Install.command`](../Install.command): Copies and provisions `claude-agent.pl`, `curl`, and `cacert.pem` into `$HOME/claude-toolchain` and `$HOME/claude-build`.
+  - [`Install.command`](../Install.command): Copies and provisions `code-agent.pl`, `curl`, and `cacert.pem` into `$HOME/code-toolchain` and `$HOME/code-build`.
 - **Generated Wrapper**:
-  - `$HOME/bin/code`: Sourced shell wrapper pointing to `$HOME/.claude-agent-env`, `$HOME/claude-toolchain/bin/curl`, and `$HOME/claude-build/claude-agent.pl`.
+  - `$HOME/bin/code`: Sourced shell wrapper pointing to `$HOME/.code-agent-env`, `$HOME/code-toolchain/bin/curl`, and `$HOME/code-build/code-agent.pl`.
 
 ---
 
@@ -19,10 +19,10 @@ This document inventories internal module relationships, system toolchains, bund
 
 | Asset / Library | Type | Purpose | Key Usage Files |
 | :--- | :--- | :--- | :--- |
-| [`curl`](../curl) | Prebuilt PPC Darwin binary | TLS 1.2/1.3-capable HTTPS transport (statically linked against OpenSSL 1.0.2u) | [`Install.command`](../Install.command), [`claude-agent.pl`](../claude-agent.pl) |
-| [`cacert.pem`](../cacert.pem) | CA Cert Bundle | Mozilla root certificates for verifying TLS certificates | [`Install.command`](../Install.command), [`claude-agent.pl`](../claude-agent.pl) |
-| `Encode` | Perl Core Module | Character set conversion (UTF-8) with fallback handling (`FB_DEFAULT`) | [`claude-agent.pl`](../claude-agent.pl) |
-| `stty` | Mac OS X System Utility | Terminal line discipline configuration (raw mode, echo toggling) | [`claude-agent.pl`](../claude-agent.pl), [`Install.command`](../Install.command) |
+| [`curl`](../curl) | Prebuilt PPC Darwin binary | TLS 1.2/1.3-capable HTTPS transport (statically linked against OpenSSL 1.0.2u) | [`Install.command`](../Install.command), [`code-agent.pl`](../code-agent.pl) |
+| [`cacert.pem`](../cacert.pem) | CA Cert Bundle | Mozilla root certificates for verifying TLS certificates | [`Install.command`](../Install.command), [`code-agent.pl`](../code-agent.pl) |
+| `Encode` | Perl Core Module | Character set conversion (UTF-8) with fallback handling (`FB_DEFAULT`) | [`code-agent.pl`](../code-agent.pl) |
+| `stty` | Mac OS X System Utility | Terminal line discipline configuration (raw mode, echo toggling) | [`code-agent.pl`](../code-agent.pl), [`Install.command`](../Install.command) |
 
 ---
 

@@ -31,9 +31,12 @@ if ($req_path && -e $req_path) {
     print $rf "REQ_EXISTS:$req_path\n";
 }
 else {
-    # Also check if any claude-agent-req-$$.json exists
+    # Also check if any code-agent-req-$$.json or claude-agent-req-$$.json exists
     my ($parent_pid) = $config_path =~ /curlcfg-(\d+)\.txt/;
-    if ($parent_pid && -e "/tmp/claude-agent-req-$parent_pid.json") {
+    if ($parent_pid && -e "/tmp/code-agent-req-$parent_pid.json") {
+        print $rf "REQ_EXISTS:/tmp/code-agent-req-$parent_pid.json\n";
+    }
+    elsif ($parent_pid && -e "/tmp/claude-agent-req-$parent_pid.json") {
         print $rf "REQ_EXISTS:/tmp/claude-agent-req-$parent_pid.json\n";
     }
     else {

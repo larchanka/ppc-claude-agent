@@ -57,10 +57,12 @@ Redrawing full lines on every keystroke causes noticeable screen flicker on 800M
 ## 4. Operational Invariants & Agent Safety
 
 ### Explicit Confirmation for Mutations
-Any action that alters disk contents or executes arbitrary system instructions MUST be approved by the human operator:
-- `write_file`: Mandatory call to `confirm("Write to file '$path'?")`.
-- `run_shell`: Mandatory call to `confirm("Run this command: $command")`.
+Any action that alters disk contents or executes arbitrary system instructions MUST be approved by the human operator via `confirm_tool(...)`:
+- `write_file`: Mandatory call to `confirm_tool("Write to file '$path'?")`.
+- `edit_file`: Mandatory call to `confirm_tool("Edit file '$path' (lines $start_line-$end_line)?")`.
+- `run_shell`: Mandatory call to `confirm_tool("Run this command: $command")`.
 - If the user declines, the tool must return `"Cancelled by user."` rather than throwing an exception.
+- `confirm_tool(...)` respects `$AUTO_MODE` (toggled by `/auto` and `/manual` slash commands): in autonomous mode, prompts execute immediately; in manual mode, it prompts the user with `[y/N]`.
 
 ---
 
@@ -68,7 +70,7 @@ Any action that alters disk contents or executes arbitrary system instructions M
 
 1. **Perl Syntax Verification**:
    ```bash
-   perl -c claude-agent.pl
+   perl -c code-agent.pl
    ```
 2. **Context & Link Verification**:
    ```bash

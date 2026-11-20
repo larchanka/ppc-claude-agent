@@ -19,7 +19,7 @@ Welcome to `ppc-claude-agent`. This file provides essential guidelines, architec
 ### Build & Setup
 ```bash
 # Verify Perl syntax of the standalone agent script
-perl -c claude-agent.pl
+perl -c code-agent.pl
 
 # Run installation workflow (Finder double-click or CLI)
 ./Install.command
@@ -30,23 +30,23 @@ perl -c claude-agent.pl
 # Direct execution (with Anthropic API)
 export ANTHROPIC_API_KEY="sk-ant-..."
 export CLAUDE_PROVIDER="anthropic"
-perl claude-agent.pl
+perl code-agent.pl
 
 # Direct execution (with Gemini API)
 export GEMINI_API_KEY="AIzaSy..."
 export CLAUDE_PROVIDER="gemini"
-perl claude-agent.pl
+perl code-agent.pl
 
 # Execution with custom toolchain curl & cacert
 export CLAUDE_CURL="./curl"
 export CLAUDE_CACERT="./cacert.pem"
-perl claude-agent.pl
+perl code-agent.pl
 ```
 
 ### Verification & Testing
 ```bash
 # Perl syntax check
-perl -c claude-agent.pl
+perl -c code-agent.pl
 
 # Verify context documentation integrity
 python3 /Users/mikhaillarchanka/.gemini/config/skills/codebase-context-generator/scripts/verify_context.py --root .
@@ -68,7 +68,7 @@ For in-depth architectural details, refer to the documentation in the [`context/
 ### Key Entry Points & Core Components
 | Component / File | Role | Type |
 | :--- | :--- | :--- |
-| [`claude-agent.pl`](./claude-agent.pl) | Standalone interactive CLI agent loop, JSON engine, API adapters, and tool executors | Entrypoint / Core |
+| [`code-agent.pl`](./code-agent.pl) | Standalone interactive CLI agent loop, JSON engine, API adapters, and tool executors | Entrypoint / Core |
 | [`Install.command`](./Install.command) | Interactive setup script for Finder and terminal, toolchain deployment, API key configuration | Installer Entrypoint |
 | [`curl`](./curl) | Prebuilt TLS 1.2/1.3 PowerPC Tiger curl binary | Binary Utility |
 | [`cacert.pem`](./cacert.pem) | Mozilla root certificate bundle for TLS verification | Security Asset |
@@ -80,11 +80,11 @@ For in-depth architectural details, refer to the documentation in the [`context/
 
 Follow these rules on every task:
 
-1. **Zero External Perl Dependencies**: `claude-agent.pl` MUST remain 100% self-contained in standard Perl 5.8.6. Never introduce `cpan` dependencies or modern modules (e.g., `JSON::XS`, `LWP::UserAgent`, `Mojo::*`).
+1. **Zero External Perl Dependencies**: `code-agent.pl` MUST remain 100% self-contained in standard Perl 5.8.6. Never introduce `cpan` dependencies or modern modules (e.g., `JSON::XS`, `LWP::UserAgent`, `Mojo::*`).
 2. **Mac OS X 10.4 Tiger Compatibility**: Do not use Perl features newer than 5.8.6 (avoid `state` variables, `say`, defined-or `//`, named regex captures, modern unicode properties).
 3. **Surgical Changes**: Touch only lines necessary for requested features or fixes. Do not reformat unrelated subroutines or comments.
 4. **Preserve Raw STDIN / UTF-8 Separation**: Keep STDIN as raw bytes to prevent multibyte boundary corruption in Perl 5.8.6 PerlIO. Decode explicitly at line or buffer boundaries.
-5. **Preserve User Confirmations on Side Effects**: All filesystem modifications (`write_file`) and command executions (`run_shell`) MUST check user permissions via `confirm_tool()`, which respects `$AUTO_MODE` (controlled by `/auto` and `/manual` slash commands or `$ENV{CLAUDE_AUTO_MODE}`) and delegates to interactive `confirm()` when in manual mode. Direct user prompts (e.g. saving API keys) must continue using `confirm()`.
+5. **Preserve User Confirmations on Side Effects**: All filesystem modifications (`write_file`, `edit_file`) and command executions (`run_shell`) MUST check user permissions via `confirm_tool()`, which respects `$AUTO_MODE` (controlled by `/auto` and `/manual` slash commands or `$ENV{CLAUDE_AUTO_MODE}`) and delegates to interactive `confirm()` when in manual mode. Direct user prompts (e.g. saving API keys) must continue using `confirm()`.
 
 ---
 
