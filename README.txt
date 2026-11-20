@@ -17,6 +17,19 @@ HOW TO INSTALL
 
 That's it. No compiling, no MacPorts, no Xcode required.
 
+USING THE AGENT
+-------------------------
+Once started, you can chat with the agent or enter slash commands:
+- /new     : Start a new conversation (clears history and resets context)
+- /models  : View and switch available AI models
+- /claude  : Switch to Anthropic Claude
+- /gemini  : Switch to Google Gemini
+- /openai  : Switch to OpenAI-compatible endpoint (e.g. local LAN Ollama)
+- /auto    : Enable autonomous mode (run tools without confirmation)
+- /manual  : Enable manual mode (require confirmation before file/shell actions)
+- /help    : Show available commands
+- exit     : Exit the agent (or press Ctrl-D)
+
 REQUIREMENTS
 ------------------------
 - A PowerPC Mac running Mac OS X 10.4 (Tiger) -- tested on an iBook G4

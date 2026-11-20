@@ -55,6 +55,13 @@ A recursive-descent JSON parser and encoder tailored for standard Perl scalars, 
 - `get_auto_mode()`: Returns current autonomous mode status (`0` or `1`).
 - `set_auto_mode($val)`: Sets `$AUTO_MODE` (`1` if truthy, `0` otherwise) and returns the normalized value.
 
+#### Session Management & Lifecycle
+- `generate_session_id()`: Generates unique timestamped session IDs (`session-YYYYMMDD-HHMMSS-NNN`) via monotonic counter and `localtime`.
+- `init_session([$id])`: Creates and sets `$CURRENT_SESSION` with metadata (`id`, `created_at`, `provider`, `model`) and a fresh empty `messages` arrayref.
+- `get_current_session()`: Returns active `$CURRENT_SESSION`, lazily calling `init_session()` if undefined.
+- `archive_session($session)`: Lifecycle extension hook for future persistence / session resume before resetting context.
+- `handle_new_command($out_fh, $session)`: Command handler for `/new` slash command; archives existing session, initializes a fresh session, and prints confirmation.
+
 #### Request & Response Construction
 - `build_headers()`: Returns array of HTTP headers tailored to current provider (e.g. `x-api-key`, `anthropic-version`, `x-goog-api-key`, `Authorization`).
 - `build_request($messages_ref, $tools_ref, $system_prompt)`: Dispatches to provider-specific request builder.
