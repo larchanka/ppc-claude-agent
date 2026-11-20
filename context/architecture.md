@@ -32,11 +32,11 @@ graph TD
     ModelDecision -->|Tool Use Call| ToolExec["run_tool()"]
     
     subgraph Tools["Agent Tools"]
-        ToolExec --> ToolConfirm{"confirm() prompt"}
-        ToolConfirm -->|Approved| TF1["read_file"]
-        ToolConfirm -->|Approved| TF2["write_file"]
-        ToolConfirm -->|Approved| TF3["list_dir"]
-        ToolConfirm -->|Approved| TF4["run_shell"]
+        ToolExec --> ToolConfirm{"confirm_tool()<br/>($AUTO_MODE / /auto /manual)"}
+        ToolConfirm -->|Approved / Auto| TF1["read_file"]
+        ToolConfirm -->|Approved / Auto| TF2["write_file"]
+        ToolConfirm -->|Approved / Auto| TF3["list_dir"]
+        ToolConfirm -->|Approved / Auto| TF4["run_shell"]
     end
     
     TF1 --> Loop
@@ -73,12 +73,15 @@ graph TD
   - HTTP error code handling and retry guidance.
 
 ### 4. Autonomous Tool Execution & Safety Layer
-- **Location**: [`claude-agent.pl`](../claude-agent.pl) (Lines 644–655, 1495–1536)
+- **Location**: [`claude-agent.pl`](../claude-agent.pl) (Lines 57–60, 1046–1095, 1164–1172, 2040–2080)
 - **Responsibilities**:
   - `read_file`: Reads file content in UTF-8.
-  - `write_file`: Writes content to local disk with explicit interactive `confirm()` check.
+  - `write_file`: Writes content to local disk with permission checked via `confirm_tool()`.
   - `list_dir`: Scans directory entries excluding `.` and `..`.
-  - `run_shell`: Executes arbitrary shell commands via system backticks with mandatory interactive user confirmation.
+  - `run_shell`: Executes arbitrary shell commands via system backticks with permission checked via `confirm_tool()`.
+  - `confirm_tool($prompt)`: Permission wrapper that returns `1` immediately when `$AUTO_MODE` is active; delegates to interactive `confirm($prompt)` when manual mode is active.
+  - `handle_auto_command($out_fh)` & `handle_manual_command($out_fh)`: Slash command handlers (`/auto`, `/manual`) toggling `$AUTO_MODE`.
+  - `get_auto_mode()` & `set_auto_mode($val)`: Encapsulated accessors for `$AUTO_MODE`.
 
 ## Data Flow & Lifecycle
 
@@ -89,4 +92,4 @@ graph TD
 5. **Response Parsing**: The returned JSON is parsed with `MiniJSON::decode()` and normalized by `parse_response()` into text blocks or `tool_use` events.
 6. **Execution / Feedback**:
    - If text: Printed to STDOUT using `slow_print()` for a vintage terminal typing effect.
-   - If `tool_use`: Dispatched to `run_tool()`. Actions with side effects require interactive `[y/N]` confirmation. The tool result is wrapped into a `tool_result` message and re-submitted to the API loop until a final text response is produced.
+   - If `tool_use`: Dispatched to `run_tool()`. Actions with side effects check `confirm_tool()`, which requires interactive `[y/N]` confirmation in manual mode (`/manual`) or executes immediately in autonomous mode (`/auto`). The tool result is wrapped into a `tool_result` message and re-submitted to the API loop until a final text response is produced.

@@ -84,7 +84,7 @@ Follow these rules on every task:
 2. **Mac OS X 10.4 Tiger Compatibility**: Do not use Perl features newer than 5.8.6 (avoid `state` variables, `say`, defined-or `//`, named regex captures, modern unicode properties).
 3. **Surgical Changes**: Touch only lines necessary for requested features or fixes. Do not reformat unrelated subroutines or comments.
 4. **Preserve Raw STDIN / UTF-8 Separation**: Keep STDIN as raw bytes to prevent multibyte boundary corruption in Perl 5.8.6 PerlIO. Decode explicitly at line or buffer boundaries.
-5. **Preserve User Confirmations on Side Effects**: All filesystem modifications (`write_file`) and command executions (`run_shell`) MUST prompt the user for confirmation via `confirm()`.
+5. **Preserve User Confirmations on Side Effects**: All filesystem modifications (`write_file`) and command executions (`run_shell`) MUST check user permissions via `confirm_tool()`, which respects `$AUTO_MODE` (controlled by `/auto` and `/manual` slash commands or `$ENV{CLAUDE_AUTO_MODE}`) and delegates to interactive `confirm()` when in manual mode. Direct user prompts (e.g. saving API keys) must continue using `confirm()`.
 
 ---
 
