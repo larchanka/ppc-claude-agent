@@ -4,7 +4,7 @@ This document details the modules, script architectures, subroutines, and system
 
 ---
 
-## 1. Module: `claude-agent.pl`
+## 1. Module: `code-agent.pl`
 
 ### Overview
 The primary executable for the PowerPC AI agent. It is a single, self-contained Perl script designed to run on Perl 5.8.6 under Mac OS X 10.4 Tiger without any CPAN dependencies.
@@ -28,9 +28,11 @@ A recursive-descent JSON parser and encoder tailored for standard Perl scalars, 
 
 #### Provider Management & Setup
 - `configure_provider($provider)`: Configures `$API_KEY`, `$MODEL`, `$API_URL`, and `$ANTHROPIC_VERSION` for `anthropic`, `gemini`, or `openai`.
+- `get_env_file_path()`: Resolves the environment file path, preferring `~/.code-agent-env` with fallback to `~/.claude-agent-env`.
+- `load_env_file([$file])`: Loads environment variables from the environment file if not already set in `%ENV`.
 - `gemini_key_setup()`: Interactive CLI wizard guiding users through setting up a free Google AI Studio key.
 - `_validate_gemini_key($key)`: Performs a lightweight test query to verify validity.
-- `_maybe_save_gemini_key($key)`: Prompts the user to save credentials to `~/.claude-agent-env`.
+- `_maybe_save_gemini_key($key)`: Prompts the user to save credentials to `~/.code-agent-env`.
 - `read_secret_or_cancel($prompt)`: Prompts for sensitive input with echo disabled, supporting cancel via Escape or Ctrl+C.
 - `get_current_model()`: Returns active `$MODEL`.
 - `get_current_provider()`: Returns active `$PROVIDER`.
@@ -80,7 +82,7 @@ A recursive-descent JSON parser and encoder tailored for standard Perl scalars, 
 - `confirm($prompt)`: Displays an interactive `[y/N]` prompt requiring affirmative user consent.
 - `confirm_tool($prompt)`: Tool permission gate returning `1` if `$AUTO_MODE` is enabled, or delegating to `confirm($prompt)` in manual mode.
 - `slow_print($text)`: Prints output with simulated typewriter delay for vintage terminal ambiance.
-- `run_tool($name, $input)`: Executes requested agent tools (`read_file`, `write_file`, `list_dir`, `run_shell`), gating side effects through `confirm_tool()`.
+- `run_tool($name, $input)`: Executes requested agent tools (`read_file` with optional line slicing, `write_file`, `edit_file`, `list_dir`, `run_shell`), gating side effects through `confirm_tool()`.
 
 ---
 
@@ -90,11 +92,11 @@ A recursive-descent JSON parser and encoder tailored for standard Perl scalars, 
 A standalone Bash script providing one-click installation on Mac OS X 10.4 Tiger.
 
 ### Key Operations
-1. **Toolchain Installation**: Copies `curl` to `$HOME/claude-toolchain/bin/curl` and sets executable permissions.
-2. **Runtime Deployment**: Copies `claude-agent.pl` and `cacert.pem` to `$HOME/claude-build/`.
+1. **Toolchain Installation**: Copies `curl` to `$HOME/code-toolchain/bin/curl` and sets executable permissions.
+2. **Runtime Deployment**: Copies `code-agent.pl` and `cacert.pem` to `$HOME/code-build/`.
 3. **Curl Verification**: Executes `curl --version` to verify PowerPC CPU and kernel compatibility.
-4. **Interactive Provider Selection**: Guides user to choose Anthropic or Gemini, prompts for API key without echo, and writes `~/.claude-agent-env` with permissions `0600`.
-5. **Launcher Wrapper**: Generates `$HOME/bin/code`, which sources the environment and launches `claude-agent.pl`.
+4. **Interactive Provider Selection**: Guides user to choose Anthropic or Gemini, prompts for API key without echo, and writes `~/.code-agent-env` with permissions `0600`.
+5. **Launcher Wrapper**: Generates `$HOME/bin/code`, which sources the environment and launches `code-agent.pl`.
 6. **Path Configuration**: Updates `$HOME/.bash_profile` with `$HOME/bin` if not already present.
 7. **End-to-End Connectivity Verification**: Makes a test HTTP request to verify API keys and network connectivity before concluding setup.
 

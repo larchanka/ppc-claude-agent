@@ -66,7 +66,7 @@ Checking that curl actually works on this Mac... OK
 Follow the prompts to:
 1. Select your preferred provider (**Anthropic Claude** or **Google Gemini**).
    > **Tip**: Google Gemini has a free tier with no credit card required at [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
-2. Enter your API key (stored securely in `~/.claude-agent-env`).
+2. Enter your API key (stored securely in `~/.code-agent-env`).
 3. Deploy the CLI wrapper to `~/bin/code`.
 
 ### 3. Start Chatting
@@ -228,7 +228,7 @@ Run the test suite directly on your Mac or any Unix machine with Perl 5.8+:
 
 ```bash
 # Verify Perl syntax (strict Perl 5.8.6 compatibility)
-perl -c claude-agent.pl
+perl -c code-agent.pl
 
 # Run the full automated test suite
 prove -v t/*.t
@@ -244,7 +244,7 @@ Test coverage includes:
 
 ## 📦 File Breakdown
 
-- **`claude-agent.pl`**: The monolithic, self-contained agent script (JSON engine, API adapters, terminal line editor, tool executor).
+- **`code-agent.pl`**: The monolithic, self-contained agent script (JSON engine, API adapters, terminal line editor, tool executor).
 - **`Install.command`**: Interactive double-click setup wizard for Mac OS X Finder and terminal.
 - **`curl`**: Precompiled PowerPC Tiger binary (statically linked against OpenSSL 1.0.2u with TLS 1.2/1.3 support).
 - **`cacert.pem`**: Mozilla root CA certificate bundle for TLS verification.

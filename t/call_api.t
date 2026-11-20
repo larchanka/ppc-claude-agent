@@ -11,7 +11,7 @@ $ENV{CLAUDE_CACERT} = "$root_dir/cacert.pem";
 $ENV{MOCK_CURL_LOG} = "$root_dir/t/test_mock_curl.log";
 $ENV{MOCK_CURL_REQ_CHECK} = "$root_dir/t/test_mock_curl_req.log";
 
-require "$root_dir/claude-agent.pl";
+require "$root_dir/code-agent.pl";
 
 sub read_file_content {
     my ($file) = @_;
@@ -37,7 +37,7 @@ sub read_file_content {
     my $curl_cfg = read_file_content($ENV{MOCK_CURL_LOG});
     like($curl_cfg, qr/^request = "POST"$/m, "Default POST sets request = 'POST'");
     like($curl_cfg, qr/^header = "custom-header: foo"$/m, "Header passed to curl config");
-    like($curl_cfg, qr/^data-binary = "\@\/tmp\/claude-agent-req-\d+\.json"$/m, "Default POST includes data-binary");
+    like($curl_cfg, qr/^data-binary = "\@\/tmp\/(?:code|claude)-agent-req-\d+\.json"$/m, "Default POST includes data-binary");
 
     my $req_check = read_file_content($ENV{MOCK_CURL_REQ_CHECK});
     like($req_check, qr/^REQ_EXISTS:/, "Default POST created request body tempfile");
@@ -56,7 +56,7 @@ sub read_file_content {
 
     my $curl_cfg = read_file_content($ENV{MOCK_CURL_LOG});
     like($curl_cfg, qr/^request = "POST"$/m, "Explicit POST sets request = 'POST'");
-    like($curl_cfg, qr/^data-binary = "\@\/tmp\/claude-agent-req-\d+\.json"$/m, "Explicit POST includes data-binary");
+    like($curl_cfg, qr/^data-binary = "\@\/tmp\/(?:code|claude)-agent-req-\d+\.json"$/m, "Explicit POST includes data-binary");
 }
 
 # ------------------------------------------------------------------

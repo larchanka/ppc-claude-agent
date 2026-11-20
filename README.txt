@@ -35,7 +35,7 @@ WHAT'S INSIDE
 -------------------------
 - curl            : prebuilt, TLS 1.2/1.3-capable curl for PowerPC/Tiger
 - cacert.pem       : current CA certificate bundle
-- claude-agent.pl  : the agent itself (single Perl file, no dependencies)
+- code-agent.pl    : the agent itself (single Perl file, no dependencies)
 - Install.command  : the installer you double-click
 
 More detail, and how to build everything from source, is in the full

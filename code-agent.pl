@@ -1,17 +1,17 @@
 #!/usr/bin/perl
-# claude-agent.pl — Self-contained Claude API agent for iBook G4
+# code-agent.pl — Self-contained Claude API agent for iBook G4
 # (Mac OS X 10.4 Tiger, Perl 5.8.6). Has no external CPAN module dependencies.
 #
-# Prerequisite: /usr/local/claude-toolchain/bin/curl (with TLS 1.2/1.3 support),
-#               built via ~/claude-build/build/remote-build-*.sh, must be available.
+# Prerequisite: /usr/local/code-toolchain/bin/curl (with TLS 1.2/1.3 support),
+#               built via ~/code-build/build/remote-build-*.sh, must be available.
 #
 # Usage:
 #   export ANTHROPIC_API_KEY=sk-ant-...
-#   perl claude-agent.pl
+#   perl code-agent.pl
 
 use strict;
 use warnings;
-use utf8;  # Interpret UTF-8 literals in this file
+use utf8;
 use Encode qw(decode encode FB_DEFAULT);
 
 # Explicitly handle screen output as UTF-8.
@@ -29,20 +29,47 @@ binmode STDERR, ':encoding(UTF-8)';
 # until the API response arrives, so we explicitly flush each time.
 $| = 1;
 
-# ------------------------------------------------------------------
-# Configuration
-# ------------------------------------------------------------------
-my $CURL      = $ENV{CLAUDE_CURL} || '/usr/local/claude-toolchain/bin/curl';
-my $CACERT    = $ENV{CLAUDE_CACERT} || '/usr/local/claude-toolchain/cacert.pem';
+# --- Configuration ---
+my $CURL      = $ENV{CLAUDE_CURL} || '/usr/local/code-toolchain/bin/curl';
+my $CACERT    = $ENV{CLAUDE_CACERT} || '/usr/local/code-toolchain/cacert.pem';
 my $MAX_TOKENS = 4096;
-# Same path used by setup.sh. Used when saving keys entered via /claude or /gemini
-# (fallback write target when not using setup.sh).
-my $ENV_FILE_PATH = ($ENV{HOME} || '.') . '/.claude-agent-env';
+
+# Resolves the environment file path.
+# Prefers ~/.code-agent-env, falling back to legacy ~/.claude-agent-env if it exists.
+sub get_env_file_path {
+    my $home = $ENV{HOME} || '.';
+    my $primary = "$home/.code-agent-env";
+    my $legacy  = "$home/.claude-agent-env";
+    return $legacy if !-e $primary && -e $legacy;
+    return $primary;
+}
+
+# Loads environment variables from an env file (defaulting to get_env_file_path()).
+# Skips lines that don't match or variables already present in %ENV.
+sub load_env_file {
+    my ($file) = @_;
+    $file = get_env_file_path() unless defined $file;
+    return unless -f $file;
+    if (open(my $fh, '<', $file)) {
+        while (my $line = <$fh>) {
+            chomp $line;
+            if ($line =~ /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=(.*)$/) {
+                my ($k, $v) = ($1, $2);
+                $v =~ s/^\s+|\s+$//g;
+                $v =~ s/^["'](.*)["']$/$1/;
+                $ENV{$k} = $v unless exists $ENV{$k};
+            }
+        }
+        close $fh;
+    }
+}
+
+my $ENV_FILE_PATH = get_env_file_path();
 
 # Theme-safe ANSI attributes (zero hardcoded colors; adapts to Terminal profile)
-my $COLOR_RESET = "\x1b[0m";   # Default foreground and background
-my $COLOR_USER  = "\x1b[2m";   # Dim/Faint (secondary text; degrades to default foreground on older terminals)
-my $COLOR_MODEL = "\x1b[1m";   # Bold (high contrast using profile's configured Bold text color/weight)
+my $COLOR_RESET = "\x1b[0m";
+my $COLOR_USER  = "\x1b[2m";
+my $COLOR_MODEL = "\x1b[1m";
 if (!-t STDOUT || exists $ENV{NO_COLOR}) {
     $COLOR_RESET = '';
     $COLOR_USER  = '';
@@ -74,7 +101,7 @@ sub configure_provider {
     elsif ($provider eq 'anthropic') {
         $ENV{ANTHROPIC_API_KEY} or die "ANTHROPIC_API_KEY is not set.\n";
         $API_KEY = $ENV{ANTHROPIC_API_KEY};
-        $MODEL   = $ENV{CLAUDE_MODEL} || 'claude-sonnet-4-5-20250929';
+        $MODEL   = $ENV{CLAUDE_MODEL} || 'code-sonnet-4-5-20250929';
         $API_URL = 'https://api.anthropic.com/v1/messages';
         $ANTHROPIC_VERSION = '2023-06-01';
     }
@@ -96,6 +123,8 @@ sub configure_provider {
 }
 
 unless (caller) {
+    load_env_file();
+
     # Determine provider: if not explicitly specified, use Anthropic if key exists,
     # otherwise Gemini (free tier; new users are guided here).
     my $_want_provider = $ENV{CLAUDE_PROVIDER};
@@ -121,14 +150,28 @@ unless (caller) {
     }
 }
 
-my $SYSTEM_PROMPT = <<'EOS';
+our $SYSTEM_PROMPT = <<'EOS';
 You are a lightweight coding assistant running in the terminal of a
-PowerPC iBook G4 (Mac OS X 10.4 Tiger). You have four tools available:
-read_file, write_file, list_dir, and run_shell. Use them to read/write
-files and run commands in the user's working directory. Keep replies
-concise, and always reply in the same language the user wrote in
-(if they write in Japanese, reply in Japanese; if English, reply in
+PowerPC iBook G4 (Mac OS X 10.4 Tiger). You have five tools available:
+read_file, write_file, edit_file, list_dir, and run_shell. Use them to
+read, create, edit files and run commands in the user's working directory.
+Keep replies concise, and always reply in the same language the user wrote
+in (if they write in Japanese, reply in Japanese; if English, reply in
 English; and so on for other languages).
+
+Tool usage guidelines:
+- read_file: Reads file contents. Supports optional 1-based inclusive
+  `start_line` and `end_line` parameters. Use them to inspect specific
+  slices or navigate large files efficiently. Omit to read the full file.
+- edit_file: Replaces a range of lines (`start_line` to `end_line`,
+  1-based inclusive) with new `content`. Prefer `edit_file` over
+  `write_file` for updating existing files to avoid rewriting entire files.
+  To insert content without deleting lines, set `end_line = start_line - 1`.
+  To delete lines, provide an empty string `""` as `content`.
+- write_file: Creates a new file or completely overwrites an existing file.
+  Use primarily for creating new files.
+- list_dir: Lists entries in a directory.
+- run_shell: Executes a shell command and captures output.
 
 Environment quirks to keep in mind for run_shell, so you get it right on
 the first try instead of trial-and-error (each attempt needs the user's
@@ -143,10 +186,7 @@ explicit y/N confirmation, so retries are especially disruptive here):
   legacy `urllib`/`urllib2` modules instead).
 EOS
 
-# ------------------------------------------------------------------
-# Minimal JSON encoder/decoder (zero dependencies, recursive descent parser
-# covering what is needed for Claude API message structures)
-# ------------------------------------------------------------------
+# --- Minimal JSON encoder/decoder (zero dependencies, recursive descent) ---
 package MiniJSON;
 
 sub encode {
@@ -202,7 +242,6 @@ sub _decode_value {
     if (substr($$t, $$p, 4) eq 'true') { $$p += 4; return 1; }
     if (substr($$t, $$p, 5) eq 'false') { $$p += 5; return 0; }
     if (substr($$t, $$p, 4) eq 'null') { $$p += 4; return undef; }
-    # number
     if (substr($$t, $$p) =~ /^(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/) {
         $$p += length($1);
         return $1 + 0;
@@ -213,14 +252,14 @@ sub _decode_value {
 sub _decode_object {
     my ($t, $p) = @_;
     my %h;
-    $$p++; # {
+    $$p++;
     _skip_ws($t, $p);
     if (substr($$t, $$p, 1) eq '}') { $$p++; return \%h; }
     while (1) {
         _skip_ws($t, $p);
         my $key = _decode_string($t, $p);
         _skip_ws($t, $p);
-        $$p++; # :
+        $$p++;
         my $val = _decode_value($t, $p);
         $h{$key} = $val;
         _skip_ws($t, $p);
@@ -235,7 +274,7 @@ sub _decode_object {
 sub _decode_array {
     my ($t, $p) = @_;
     my @a;
-    $$p++; # [
+    $$p++;
     _skip_ws($t, $p);
     if (substr($$t, $$p, 1) eq ']') { $$p++; return \@a; }
     while (1) {
@@ -252,7 +291,7 @@ sub _decode_array {
 
 sub _decode_string {
     my ($t, $p) = @_;
-    $$p++; # opening "
+    $$p++;
     my $out = '';
     while (1) {
         my $c = substr($$t, $$p, 1);
@@ -282,9 +321,7 @@ sub _decode_string {
 
 package main;
 
-# ------------------------------------------------------------------
-# curl invocation (uses newly built TLS 1.2/1.3 capable curl)
-# ------------------------------------------------------------------
+# --- curl invocation (TLS 1.2/1.3 toolchain curl) ---
 sub call_api {
     # $headers is an arrayref of header strings (e.g. "x-api-key: ...").
     # Thin transport layer that takes URL/headers from outside per provider;
@@ -293,9 +330,9 @@ sub call_api {
     $method = defined $method ? uc($method) : 'POST';
     my $has_body = ($method ne 'GET' && defined $body_json) ? 1 : 0;
 
-    my $tmp_req    = "/tmp/claude-agent-req-$$.json";
-    my $tmp_resp   = "/tmp/claude-agent-resp-$$.json";
-    my $tmp_config = "/tmp/claude-agent-curlcfg-$$.txt";
+    my $tmp_req    = "/tmp/code-agent-req-$$.json";
+    my $tmp_resp   = "/tmp/code-agent-resp-$$.json";
+    my $tmp_config = "/tmp/code-agent-curlcfg-$$.txt";
 
     if ($has_body) {
         open(my $fh, '>:encoding(UTF-8)', $tmp_req) or die "cannot write $tmp_req: $!\n";
@@ -352,16 +389,10 @@ sub quote {
     return "'$s'";
 }
 
-# ------------------------------------------------------------------
-# Provider-specific request building and response parsing
-#
-# Conversation history (@messages) is always kept internally in Anthropic's
-# content blocks format (role => user/assistant, content => string or
-# [{type=>text/tool_use/tool_result, ...}, ...]). When using Gemini, this internal
-# format is converted to Gemini's contents/parts format just before calling the API,
-# and converted back to internal format as soon as the response arrives.
-# This keeps the conversation loop and run_tool completely provider-agnostic.
-# ------------------------------------------------------------------
+# --- Provider-specific request building and response parsing ---
+# Conversation history (@messages) is kept internally in Anthropic content blocks format
+# (role => user/assistant, content => string or [{type=>...}]). Gemini and OpenAI formats
+# are converted on the wire, keeping the loop and run_tool provider-agnostic.
 
 sub build_headers {
     if ($PROVIDER eq 'gemini') {
@@ -403,7 +434,6 @@ sub build_request_gemini {
         my $role = $msg->{role} eq 'assistant' ? 'model' : 'user';
         my @parts;
         if (!ref $msg->{content}) {
-            # Raw text entered directly by the user, not divided into blocks
             push @parts, { text => $msg->{content} };
         }
         else {
@@ -617,9 +647,7 @@ sub parse_response_gemini {
     return @blocks;
 }
 
-# ------------------------------------------------------------------
-# Provider model discovery & schema adapters
-# ------------------------------------------------------------------
+# --- Provider model discovery & schema adapters ---
 sub fetch_models {
     my ($provider) = @_;
     $provider = (defined $provider && $provider ne '') ? $provider : $PROVIDER;
@@ -770,9 +798,7 @@ sub _fetch_models_openai {
     return \@models;
 }
 
-# ------------------------------------------------------------------
-# Interactive model selection UI
-# ------------------------------------------------------------------
+# --- Interactive model selection UI ---
 our $FORCE_RAW = 0;
 
 sub _normalize_models {
@@ -1112,9 +1138,7 @@ sub handle_models_command {
     return $MODEL;
 }
 
-# ------------------------------------------------------------------
-# Tool definitions and tool execution
-# ------------------------------------------------------------------
+# --- Tool definitions and tool execution ---
 our @TOOLS = (
     {
         name => 'read_file',
@@ -1139,6 +1163,20 @@ our @TOOLS = (
                 content => { type => 'string', description => 'Content to write' },
             },
             required => ['path', 'content'],
+        },
+    },
+    {
+        name => 'edit_file',
+        description => 'Edit a range of lines in a file (1-based, inclusive)',
+        input_schema => {
+            type => 'object',
+            properties => {
+                path       => { type => 'string', description => 'Target file path' },
+                start_line => { type => 'integer', description => '1-based start line number (inclusive)' },
+                end_line   => { type => 'integer', description => '1-based end line number (inclusive)' },
+                content    => { type => 'string', description => 'Replacement content (empty string to delete lines)' },
+            },
+            required => ['path', 'start_line', 'end_line', 'content'],
         },
     },
     {
@@ -1194,9 +1232,7 @@ sub slow_print {
     }
 }
 
-# ------------------------------------------------------------------
-# Gemini API key setup helper (when started without a key)
-# ------------------------------------------------------------------
+# --- Gemini API key setup helper ---
 # Displays numbered steps, optionally opens the page in a browser, and validates
 # the pasted key by calling the API live. Returns the key string on success
 # (caller sets $ENV{GEMINI_API_KEY} and calls configure_provider).
@@ -1293,8 +1329,8 @@ sub _validate_gemini_key {
     return ('skip', 'curl not found')   unless -x $CURL;
     return ('skip', 'cacert not found') unless -f $CACERT;
 
-    my $tmp_resp   = "/tmp/claude-agent-keychk-resp-$$.json";
-    my $tmp_config = "/tmp/claude-agent-keychk-cfg-$$.txt";
+    my $tmp_resp   = "/tmp/code-agent-keychk-resp-$$.json";
+    my $tmp_config = "/tmp/code-agent-keychk-cfg-$$.txt";
     open(my $cf, '>', $tmp_config) or return ('network', "cannot create temp file: $!");
     chmod 0600, $tmp_config;
     print $cf qq(url = "https://generativelanguage.googleapis.com/v1beta/models"\n);
@@ -1322,17 +1358,18 @@ sub _validate_gemini_key {
     return ('bad_key', "HTTP $http");
 }
 
-# Prompt whether to save key to ~/.claude-agent-env; if confirmed,
+# Prompt whether to save key to ~/.code-agent-env; if confirmed,
 # strip existing GEMINI_API_KEY line and append new one.
 sub _maybe_save_gemini_key {
     my ($key) = @_;
-    print "\n  Save this key to $ENV_FILE_PATH so future runs pick it up automatically? [Y/n] ";
+    my $target_file = get_env_file_path();
+    print "\n  Save this key to $target_file so future runs pick it up automatically? [Y/n] ";
     my $a = read_line_interactive('', 0);
     return unless defined $a;
     return if $a =~ /^\s*n/i;
 
     my @keep;
-    if (open(my $rf, '<', $ENV_FILE_PATH)) {
+    if (open(my $rf, '<', $target_file)) {
         while (my $l = <$rf>) {
             next if $l =~ /^\s*export\s+GEMINI_API_KEY=/;
             push @keep, $l;
@@ -1340,14 +1377,14 @@ sub _maybe_save_gemini_key {
         close $rf;
     }
     push @keep, "export GEMINI_API_KEY=$key\n";
-    if (open(my $wf, '>', $ENV_FILE_PATH)) {
+    if (open(my $wf, '>', $target_file)) {
         print $wf @keep;
         close $wf;
-        chmod 0600, $ENV_FILE_PATH;
+        chmod 0600, $target_file;
         print "  -> saved. It will be loaded automatically from now on.\n";
     }
     else {
-        print "  -> could not save (cannot write $ENV_FILE_PATH).\n";
+        print "  -> could not save (cannot write $target_file).\n";
         print "     Please add the following line manually:\n";
         print "       export GEMINI_API_KEY=$key\n";
     }
@@ -1389,7 +1426,6 @@ sub read_secret_or_cancel {
         elsif ($b >= 0x20) {
             $buf .= $ch;
         }
-        # Ignore other control bytes
     }
 
     system('stty', $orig_stty) if defined $orig_stty && $orig_stty ne '';
@@ -1397,15 +1433,9 @@ sub read_secret_or_cancel {
     return $cancelled ? undef : $buf;
 }
 
-# ------------------------------------------------------------------
-# Line editing (simple readline with arrow key support)
-#
-# Standard <STDIN> has no cursor movement support, so pressing arrow keys
-# causes raw escape sequences (ESC [ C, etc.) sent by the terminal to appear
-# on screen. To prevent this, we set the terminal to raw mode via stty and
-# implement simple line editing (left/right navigation, Backspace, up/down history)
-# manually, reading byte by byte without external CPAN dependencies (Term::ReadLine, etc.).
-# ------------------------------------------------------------------
+# --- Line editing (pure-Perl readline with arrow key support) ---
+# Standard <STDIN> lacks cursor movement. In raw mode via stty, we implement
+# navigation (arrows, Backspace, history) without external modules (Term::ReadLine).
 {
     my @HISTORY;
 
@@ -1445,7 +1475,7 @@ sub read_secret_or_cancel {
         return 1;  # Advance 1 byte for invalid byte sequences
     }
 
-    # Given a decoded character, return its display width on the terminal (halfwidth=1, fullwidth=2)
+    # Terminal display width: halfwidth=1, fullwidth=2 (CJK East Asian Width)
     sub _char_width {
         my ($ch) = @_;
         my $cp = ord($ch);
@@ -1459,8 +1489,6 @@ sub read_secret_or_cancel {
         ) ? 2 : 1;
     }
 
-    # Given a decoded Perl string, return the sum of display widths
-    # (halfwidth=1, fullwidth=2)
     sub _display_width_chars {
         my ($text) = @_;
         my $w = 0;
@@ -1468,7 +1496,6 @@ sub read_secret_or_cancel {
         return $w;
     }
 
-    # Return the terminal display width of a given UTF-8 byte sequence
     sub _display_width {
         my ($bytes) = @_;
         return 0 if $bytes eq '';
@@ -1871,13 +1898,13 @@ sub read_secret_or_cancel {
             if (!defined $ch) {
                 _debug_log("EOF\n");
                 print $COLOR_RESET if $color;
-                $result = undef;  # EOF (Ctrl-D)
+                $result = undef;
                 last RAW_LOOP;
             }
             my $b = ord($ch);
             _debug_log(sprintf("byte: %02x (%s)\n", $b, ($b >= 0x20 && $b < 0x7f) ? chr($b) : ''));
 
-            if ($b == 13 || $b == 10) {       # Enter
+            if ($b == 13 || $b == 10) {
                 # A newline wrapped in 0x16 (LNEXT) comes from IME confirmation rather than an intentional
                 # Enter keypress to submit. Terminal.app on Tiger sends confirmed text byte-by-byte with 0x16;
                 # confirming during candidate selection could trigger premature submission. Wrapped newlines
@@ -1892,13 +1919,13 @@ sub read_secret_or_cancel {
                 $result = $buf;
                 last RAW_LOOP;
             }
-            elsif ($b == 3) {                  # Ctrl-C: cancel line, treat as empty
+            elsif ($b == 3) {
                 print $COLOR_RESET if $color;
                 print "\r\n";
                 $result = '';
                 last RAW_LOOP;
             }
-            elsif ($b == 4) {                  # Ctrl-D: EOF on empty line
+            elsif ($b == 4) {
                 if ($buf eq '') {
                     print $COLOR_RESET if $color;
                     $result = undef;
@@ -1914,7 +1941,7 @@ sub read_secret_or_cancel {
                     $redraw->();
                 }
             }
-            elsif ($b == 27) {                  # ESC: cursor keys, etc.
+            elsif ($b == 27) {
                 my $c2 = $read_byte->();
                 next RAW_LOOP unless defined $c2;
                 if ($c2 eq '[') {
@@ -1952,8 +1979,6 @@ sub read_secret_or_cancel {
                         }
                     }
                     elsif ($c3 =~ /[0-9;]/) {
-                        # Format: ESC [ <digits and semicolons...> <terminator>.
-                        # Collect digits/semicolons until terminator.
                         my $params = $c3;
                         my $final;
                         while (1) {
@@ -1978,7 +2003,7 @@ sub read_secret_or_cancel {
                     }
                 }
             }
-            else {                               # Regular character (raw UTF-8 bytes)
+            else {
                 # Wait until all bytes of a multibyte character arrive before adding to buffer and redrawing,
                 # otherwise decode() will turn incomplete sequences into replacement characters. If subsequent
                 # byte is not a valid UTF-8 continuation byte (10xxxxxx), restore it to pending queue.
@@ -2007,10 +2032,10 @@ sub read_secret_or_cancel {
                 if ($pos == length($buf)) {
                     my $new_full = $redraw_prompt . decode('UTF-8', $buf, FB_DEFAULT);
                     my ($nr, $nc) = _walk_position($new_full, $term_cols);
-                    if ($nr == $rows_used - 1                    # Row count does not increase
-                        && $nc <= $term_cols - 2                 # Not waiting for deferred line wrap
+                    if ($nr == $rows_used - 1
+                        && $nc <= $term_cols - 2
                         && !(defined $start_row
-                             && $start_row + $nr >= $term_rows)) # No scroll avoidance needed
+                             && $start_row + $nr >= $term_rows))
                     {
                         print decode('UTF-8', $char, FB_DEFAULT);
                         $cursor_display_row = $nr;
@@ -2073,6 +2098,54 @@ sub run_tool {
         close $fh;
         return "Write complete: $path";
     }
+    elsif ($name eq 'edit_file') {
+        my $path = $input->{path};
+        my $content = defined $input->{content} ? $input->{content}
+                    : defined $input->{replacement} ? $input->{replacement}
+                    : '';
+        my $start_line = defined $input->{start_line} ? int($input->{start_line}) : 1;
+        my $end_line   = defined $input->{end_line}   ? int($input->{end_line})   : 0;
+
+        if ($start_line < 1) {
+            return "Error: invalid start_line ($start_line): must be >= 1";
+        }
+
+        open(my $fh, '<:encoding(UTF-8)', $path) or return "Error: cannot open $path: $!";
+        my @lines = <$fh>;
+        close $fh;
+
+        my $total = scalar @lines;
+        if ($start_line > $total + 1) {
+            return "Error: start_line ($start_line) exceeds total lines ($total) + 1";
+        }
+        if ($end_line < $start_line - 1) {
+            return "Error: end_line ($end_line) cannot be less than start_line - 1 (" . ($start_line - 1) . ")";
+        }
+
+        $end_line = $total if $end_line > $total;
+
+        unless (confirm_tool("Edit file '$path' (lines $start_line-$end_line)?")) {
+            return "Cancelled by user.";
+        }
+
+        $content .= "\n" if $content ne '' && $content !~ /\n\z/;
+
+        my $offset = $start_line - 1;
+        my $length = $end_line >= $start_line ? ($end_line - $start_line + 1) : 0;
+
+        if ($content eq '') {
+            splice(@lines, $offset, $length);
+        }
+        else {
+            splice(@lines, $offset, $length, $content);
+        }
+
+        open(my $out_fh, '>:encoding(UTF-8)', $path) or return "Error: cannot write $path: $!";
+        print $out_fh @lines;
+        close $out_fh;
+
+        return "Edit complete: $path";
+    }
     elsif ($name eq 'list_dir') {
         my $path = $input->{path} || '.';
         opendir(my $dh, $path) or return "Error: cannot open $path: $!";
@@ -2093,9 +2166,7 @@ sub run_tool {
     }
 }
 
-# ------------------------------------------------------------------
-# Conversation loop
-# ------------------------------------------------------------------
+# --- Conversation loop ---
 unless (caller) {
 my @messages;
 
@@ -2112,7 +2183,6 @@ print "Hello. (Type 'exit' or Ctrl-D to quit. Switch model with /models. Switch 
 while (1) {
     my $input = read_line_interactive("\nUser> ", 1, $COLOR_USER);
     last unless defined $input;
-    # Decode to UTF-8 after full line (raw bytes) is read
     $input = decode('UTF-8', $input, FB_DEFAULT);
     next if $input eq '';
     last if $input eq 'exit';
@@ -2175,15 +2245,16 @@ while (1) {
                     }
                     else {
                         print "\nSwitched to [$PROVIDER / $MODEL]. The conversation so far carries over.\n";
-                        if (confirm("Save this key to $ENV_FILE_PATH so you don't need to enter it again?")) {
-                            if (open(my $ef, '>>', $ENV_FILE_PATH)) {
+                        my $target_file = get_env_file_path();
+                        if (confirm("Save this key to $target_file so you don't need to enter it again?")) {
+                            if (open(my $ef, '>>', $target_file)) {
                                 print $ef "export $key_name=$key\n";
                                 close $ef;
-                                chmod 0600, $ENV_FILE_PATH;
+                                chmod 0600, $target_file;
                                 print "Saved.\n";
                             }
                             else {
-                                print "Could not save (cannot write $ENV_FILE_PATH).\n";
+                                print "Could not save (cannot write $target_file).\n";
                             }
                         }
                     }
@@ -2230,10 +2301,10 @@ while (1) {
 
         if (@tool_results) {
             push @messages, { role => 'user', content => \@tool_results };
-            next; # Send tool result and call API again
+            next;
         }
 
-        last; # If no tool_use, this turn is finished
+        last;
     }
 }
 

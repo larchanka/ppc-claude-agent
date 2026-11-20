@@ -12,8 +12,8 @@ echo " Code Agent for PowerPC Mac - Installer"
 echo "=================================================="
 echo ""
 
-TOOLCHAIN_DIR="$HOME/claude-toolchain"
-BUILD_DIR="$HOME/claude-build"
+TOOLCHAIN_DIR="$HOME/code-toolchain"
+BUILD_DIR="$HOME/code-build"
 BIN_DIR="$HOME/bin"
 
 mkdir -p "$TOOLCHAIN_DIR/bin"
@@ -24,7 +24,7 @@ cp -f curl "$TOOLCHAIN_DIR/bin/curl"
 chmod +x "$TOOLCHAIN_DIR/bin/curl"
 
 echo "Installing the agent and CA certificate bundle..."
-cp -f claude-agent.pl "$BUILD_DIR/claude-agent.pl"
+cp -f code-agent.pl "$BUILD_DIR/code-agent.pl"
 cp -f cacert.pem "$BUILD_DIR/src/cacert.pem"
 
 echo ""
@@ -47,22 +47,30 @@ echo ""
 # ------------------------------------------------------------------
 # API key setup
 # ------------------------------------------------------------------
-ENV_FILE="$HOME/.claude-agent-env"
+ENV_FILE="$HOME/.code-agent-env"
+LEGACY_ENV_FILE="$HOME/.claude-agent-env"
 CURL_BIN="$TOOLCHAIN_DIR/bin/curl"
 CACERT="$BUILD_DIR/src/cacert.pem"
-AGENT_SCRIPT="$BUILD_DIR/claude-agent.pl"
+AGENT_SCRIPT="$BUILD_DIR/code-agent.pl"
 
 if [ -f "$ENV_FILE" ]; then
   overwrite="n"
   echo "Using existing API key from $ENV_FILE (this is normal when upgrading)."
   echo "To set a different key, delete this file and run the installer again:"
   echo "  rm $ENV_FILE"
+elif [ -f "$LEGACY_ENV_FILE" ]; then
+  overwrite="n"
+  ENV_FILE="$LEGACY_ENV_FILE"
+  echo "Using existing API key from legacy $LEGACY_ENV_FILE (this is normal when upgrading)."
+  echo "To set a different key, delete this file and run the installer again:"
+  echo "  rm $LEGACY_ENV_FILE"
 else
   overwrite="y"
 fi
 
 case "$overwrite" in
   y|Y)
+    ENV_FILE="$HOME/.code-agent-env"
     echo ""
     echo "Which AI should this agent talk to?"
     echo "  1) Anthropic (Claude) - most capable, pay-as-you-go billing, needs a credit card"
@@ -164,7 +172,11 @@ echo ""
 mkdir -p "$BIN_DIR"
 cat > "$BIN_DIR/code" << WRAPEOF
 #!/bin/bash
-source $ENV_FILE
+if [ -f "$HOME/.code-agent-env" ]; then
+  source "$HOME/.code-agent-env"
+elif [ -f "$HOME/.claude-agent-env" ]; then
+  source "$HOME/.claude-agent-env"
+fi
 export CLAUDE_CURL=$CURL_BIN
 export CLAUDE_CACERT=$CACERT
 exec perl $AGENT_SCRIPT

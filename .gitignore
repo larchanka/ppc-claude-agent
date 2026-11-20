@@ -2,6 +2,7 @@
 .context_cache/
 
 # Local configuration and credentials
+.code-agent-env
 .claude-agent-env
 
 # macOS system files

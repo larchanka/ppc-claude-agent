@@ -10,7 +10,7 @@ $ENV{CLAUDE_CURL} = "$root_dir/t/mock_curl.pl";
 $ENV{CLAUDE_CACERT} = "$root_dir/cacert.pem";
 $ENV{MOCK_CURL_LOG} = "$root_dir/t/test_mock_curl.log";
 
-require "$root_dir/claude-agent.pl";
+require "$root_dir/code-agent.pl";
 
 sub make_input_pipe {
     my ($data) = @_;
@@ -144,7 +144,7 @@ $FORCE_RAW = 0;
 # ==================================================================
 {
     my $perl = $^X;
-    my $script = "$root_dir/claude-agent.pl";
+    my $script = "$root_dir/code-agent.pl";
 
     # Test 6a: Banner and /help output in interactive loop
     {
