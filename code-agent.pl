@@ -83,6 +83,10 @@ my ($PROVIDER, $API_KEY, $MODEL, $API_URL, $ANTHROPIC_VERSION);
 # confirmation (write_file, run_shell) execute immediately without prompting.
 our $AUTO_MODE = $ENV{CLAUDE_AUTO_MODE} ? 1 : 0;
 
+# Active conversation session and monotonic ID sequence counter.
+our $CURRENT_SESSION = undef;
+our $SESSION_COUNTER = 0;
+
 # (Re)configures $API_KEY, $MODEL, $API_URL, etc. according to $provider.
 # Called at startup and by /claude and /gemini commands during conversation.
 # If corresponding environment variables (ANTHROPIC_API_KEY / GEMINI_API_KEY)
@@ -1080,10 +1084,57 @@ sub set_auto_mode {
     return $AUTO_MODE;
 }
 
+sub generate_session_id {
+    my ($sec, $min, $hour, $mday, $mon, $year) = localtime();
+    $SESSION_COUNTER++;
+    return sprintf("session-%04d%02d%02d-%02d%02d%02d-%03d",
+        $year + 1900, $mon + 1, $mday, $hour, $min, $sec, $SESSION_COUNTER);
+}
+
+sub init_session {
+    my ($id) = @_;
+    $id = generate_session_id() unless defined $id && length $id;
+    $CURRENT_SESSION = {
+        id         => $id,
+        created_at => time(),
+        provider   => $PROVIDER,
+        model      => $MODEL,
+        messages   => [],
+    };
+    return $CURRENT_SESSION;
+}
+
+sub get_current_session {
+    return $CURRENT_SESSION if defined $CURRENT_SESSION;
+    return init_session();
+}
+
+sub archive_session {
+    my ($session) = @_;
+    $session = $CURRENT_SESSION unless defined $session;
+    return unless defined $session;
+    # Extension hook: in future releases, serialize $session to disk
+    # (e.g. ~/.code-agent-sessions/$session->{id}.json) for resume/continue.
+    return $session;
+}
+
+sub handle_new_command {
+    my ($out_fh, $session) = @_;
+    $out_fh ||= \*STDOUT;
+    $session = $CURRENT_SESSION unless defined $session;
+
+    archive_session($session);
+    my $new_session = init_session();
+
+    print $out_fh "Started a new conversation. Chat history cleared.\n";
+    return $new_session;
+}
+
 sub show_help {
     my ($out_fh) = @_;
     $out_fh ||= \*STDOUT;
     print $out_fh "\nAvailable commands:\n";
+    print $out_fh "  /new     - Start a new conversation (clears chat history)\n";
     print $out_fh "  /models  - View and switch available AI models\n";
     print $out_fh "  /claude  - Switch to Anthropic Claude\n";
     print $out_fh "  /gemini  - Switch to Google Gemini\n";
@@ -2166,7 +2217,7 @@ sub run_tool {
 
 # --- Conversation loop ---
 unless (caller) {
-my @messages;
+get_current_session();
 
 print "\e[7mCode AI-Agent\e[0m\n";
 {
@@ -2176,7 +2227,7 @@ print "\e[7mCode AI-Agent\e[0m\n";
     }
     print "[$PROVIDER / $MODEL$where]\n";
 }
-print "Hello. (Type 'exit' or Ctrl-D to quit. Switch model with /models. Switch AI with /claude /gemini /openai. Mode with /auto /manual. Type /help for help)\n";
+print "Hello. (Type 'exit' or Ctrl-D to quit. New chat with /new. Switch model with /models. Switch AI with /claude /gemini /openai. Mode with /auto /manual. Type /help for help)\n";
 
 while (1) {
     my $input = read_line_interactive("\nUser> ", 1, $COLOR_USER);
@@ -2187,6 +2238,11 @@ while (1) {
 
     if ($input eq '/help') {
         show_help();
+        next;
+    }
+
+    if ($input eq '/new') {
+        handle_new_command();
         next;
     }
 
@@ -2265,10 +2321,11 @@ while (1) {
         next;
     }
 
-    push @messages, { role => 'user', content => $input };
+    my $session = get_current_session();
+    push @{$session->{messages}}, { role => 'user', content => $input };
 
     while (1) {
-        my $body = build_request(\@messages, \@TOOLS, $SYSTEM_PROMPT);
+        my $body = build_request($session->{messages}, \@TOOLS, $SYSTEM_PROMPT);
         my $resp = call_api($API_URL, build_headers(), MiniJSON::encode($body));
 
         my @content_blocks = eval { parse_response($resp) };
@@ -2276,7 +2333,7 @@ while (1) {
             print $@;
             last;
         }
-        push @messages, { role => 'assistant', content => \@content_blocks };
+        push @{$session->{messages}}, { role => 'assistant', content => \@content_blocks };
 
         my @tool_results;
         for my $block (@content_blocks) {
@@ -2298,7 +2355,7 @@ while (1) {
         }
 
         if (@tool_results) {
-            push @messages, { role => 'user', content => \@tool_results };
+            push @{$session->{messages}}, { role => 'user', content => \@tool_results };
             next;
         }
 
