@@ -67,14 +67,13 @@ Follow the prompts to:
 1. Select your preferred provider (**Anthropic Claude** or **Google Gemini**).
    > **Tip**: Google Gemini has a free tier with no credit card required at [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
 2. Enter your API key (stored securely in `~/.claude-agent-env`).
-3. Deploy the CLI wrapper to `~/bin/code` and `~/bin/claude-agent`.
+3. Deploy the CLI wrapper to `~/bin/code`.
 
 ### 3. Start Chatting
 Open a fresh Terminal window and type:
 ```bash
 code
 ```
-*(or `claude-agent`)*
 
 ---
 
