@@ -86,11 +86,21 @@ graph TD
   - `handle_auto_command($out_fh)` & `handle_manual_command($out_fh)`: Slash command handlers (`/auto`, `/manual`) toggling `$AUTO_MODE`.
   - `get_auto_mode()` & `set_auto_mode($val)`: Encapsulated accessors for `$AUTO_MODE`.
 
+### 5. Session Management & Lifecycle Layer
+- **Location**: [`code-agent.pl`](../code-agent.pl) (Lines 1087–1132, 2244–2247)
+- **Responsibilities**:
+  - `$CURRENT_SESSION`: Package-level session state holding `id`, `created_at`, `provider`, `model`, and `messages` arrayref.
+  - `generate_session_id()`: Generates unique timestamped session IDs (`session-YYYYMMDD-HHMMSS-NNN`) combining `localtime` and monotonic `$SESSION_COUNTER`.
+  - `init_session([$id])`: Instantiates a fresh session structure with an empty message list and sets `$CURRENT_SESSION`.
+  - `get_current_session()`: Lazy accessor ensuring active session availability.
+  - `archive_session($session)`: Lifecycle hook invoked immediately before session re-initialization to prepare for future disk persistence and continuation.
+  - `handle_new_command($out_fh, $session)`: Command handler for `/new` slash command that archives the current session, re-initializes `$CURRENT_SESSION`, and prints user confirmation.
+
 ## Data Flow & Lifecycle
 
 1. **User Input**: The user enters a prompt at `User> `. Characters are read one-by-one in raw mode, handling VT100 control codes and UTF-8 multibyte sequences.
-2. **Context Assembly**: The prompt is appended to `@messages`.
-3. **Request Serialization**: `build_request()` translates `@messages`, available `@TOOLS`, and the `$SYSTEM_PROMPT` into the appropriate provider format and encodes it with `MiniJSON::encode()`.
+2. **Context Assembly**: The prompt is appended to `$CURRENT_SESSION->{messages}` (managed by the session subsystem). Typing `/new` triggers `handle_new_command()`, archiving the old session and resetting `$CURRENT_SESSION` with a clean history without restarting the agent.
+3. **Request Serialization**: `build_request()` translates `$CURRENT_SESSION->{messages}`, available `@TOOLS`, and the `$SYSTEM_PROMPT` into the appropriate provider format and encodes it with `MiniJSON::encode()`.
 4. **Transport**: `call_api()` spawns `curl` with `--cacert cacert.pem` to POST the payload to the provider endpoint over TLS 1.2/1.3.
 5. **Response Parsing**: The returned JSON is parsed with `MiniJSON::decode()` and normalized by `parse_response()` into text blocks or `tool_use` events.
 6. **Execution / Feedback**:

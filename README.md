@@ -40,6 +40,7 @@ Vintage Macs are wonderful pieces of industrial design and distraction-free comp
 - **Multi-Provider AI**: Connects to **Anthropic Claude**, **Google Gemini** (with a free tier requiring no credit card), or **Local OpenAI-compatible models** (Ollama, llama.cpp, LocalAI running on your home LAN).
 - **Agentic Tool Execution**: Autonomously inspects directories, reads files, writes code, and executes shell commands directly on your Mac.
 - **Safety Modes**: Switch between **Manual Mode** (`/manual`, requiring user confirmation for disk writes and commands) and **Autonomous Mode** (`/auto`, executing tools automatically).
+- **Session Management**: Start a fresh conversation at any time with `/new` to reset context history without restarting the agent or re-authenticating.
 - **Retro Vintage Terminal UX**: Built-in VT100 line editor with history navigation, arrow keys, and a nostalgic typewriter typing effect (`slow_print`).
 
 ---
@@ -84,6 +85,7 @@ While in the agent prompt (`User> `), use these commands at any time:
 | Command | Description |
 | :--- | :--- |
 | `/help` | Display interactive command cheatsheet and usage tips. |
+| `/new` | **Start a new conversation**: Clears chat history and resets context window without restarting the agent. |
 | `/auto` | **Enable Autonomous Mode**: Tools (`write_file`, `run_shell`) execute without asking for permission. |
 | `/manual` | **Enable Manual Mode**: Requires explicit `[y/N]` user confirmation before modifying files or running shell commands. |
 | `/claude` | Switch active provider to **Anthropic Claude** (Claude Sonnet 4.5 / 3.7). |
@@ -91,7 +93,6 @@ While in the agent prompt (`User> `), use these commands at any time:
 | `/openai` | Switch active provider to **Local / OpenAI endpoint** (Ollama / LAN LLM). |
 | `/model <name>` | Change the active model (e.g. `/model claude-3-7-sonnet-20250219`). |
 | `/models` | List recommended models for the currently selected provider. |
-| `/clear` | Clear conversation history and reset context window. |
 | `/exit`, `/quit` | Exit the agent and return to shell. |
 
 ---
@@ -144,6 +145,13 @@ Code Agent is equipped with native tools that allow it to act as an autonomous c
   ```
 - In **Autonomous Mode** (`/auto`), tools execute automatically for uninterrupted multi-step workflows.
 - Critical operations (such as persisting API keys to disk) **always** require interactive confirmation regardless of mode.
+
+### Session & Context Lifecycle
+
+Conversation state is tracked in a structured in-memory session (`$CURRENT_SESSION`). You can start a fresh conversation at any point:
+- Type `/new` at the `User> ` prompt.
+- The agent invokes lifecycle hook `archive_session()` and initializes a new session with an empty message list.
+- Active AI provider, chosen model, and autonomous mode settings are preserved across session resets.
 
 ---
 

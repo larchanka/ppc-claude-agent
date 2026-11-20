@@ -1,55 +1,57 @@
-# Todo List: Line-Based File Tools Extension (`read_file` & `edit_file`)
+# Todo List: `/new` Chat Session Reset Command
 
-## Phase 1: Tool Implementations (Foundation)
-- [x] Task 1: Extend `read_file` Tool with Line Range Slicing
-  - [x] Add `start_line` and `end_line` optional properties to `read_file` in `@TOOLS`
-  - [x] Implement range slicing and bounds clamping in `run_tool('read_file', ...)`
-  - [x] Handle error validation when `start_line > end_line`
+## Phase 1: Foundation (Session Abstraction & Command Handler)
+- [x] Task 1: Implement Session Abstraction & Lifecycle Hooks
+  - [x] Implement `generate_session_id()` with timestamp and monotonic counter in `code-agent.pl`
+  - [x] Implement `init_session([$id])` returning structured session hashref
+  - [x] Implement `get_current_session()` with lazy initialization
+  - [x] Implement `archive_session($session)` extensible hook point
   - [x] Verify syntax via `perl -c code-agent.pl`
-- [x] Task 2: Implement `edit_file` Tool in `@TOOLS` and `run_tool`
-  - [x] Add `edit_file` tool schema to `@TOOLS` (`path`, `start_line`, `end_line`, `content`)
-  - [x] Add validation for file existence and line ranges in `run_tool('edit_file', ...)`
-  - [x] Add `confirm_tool` interactive prompt for `edit_file`
-  - [x] Implement `splice`-based line replacement, deletion, and insertion logic
-  - [x] Ensure proper UTF-8 file output and newline termination
+- [x] Task 2: Implement `/new` Command Handler and Help Documentation
+  - [x] Implement `handle_new_command($out_fh)` archiving old session, creating new session, and printing confirmation
+  - [x] Update `show_help($out_fh)` to include `/new` command description
   - [x] Verify syntax via `perl -c code-agent.pl`
 
 ### Checkpoint: Foundation
 - [x] Syntax check passes (`perl -c code-agent.pl`)
-- [x] Existing tests run and pass (`prove -v t/*.t`)
+- [x] Existing test suite runs and passes (`prove t/`)
 
 ---
 
-## Phase 2: System Prompt & Provider Integration
-- [x] Task 3: Update System Prompt and Tool Descriptions
-  - [x] Update `$SYSTEM_PROMPT` to document five available tools including `edit_file`
-  - [x] Describe line slicing usage for `read_file`
-  - [x] Describe line range replacement and deletion usage for `edit_file`
+## Phase 2: Main Loop Integration
+- [x] Task 3: Integrate Session Management and `/new` into Interactive Loop
+  - [x] Update startup banner to mention `/new`
+  - [x] Wire `/new` dispatch in conversation loop to call `handle_new_command()`
+  - [x] Use `$CURRENT_SESSION->{messages}` for message tracking in conversation loop
   - [x] Verify syntax via `perl -c code-agent.pl`
 
+### Checkpoint: Core Features
+- [x] Syntax check passes (`perl -c code-agent.pl`)
+- [x] Manual or automated verification of interactive loop with `/new` command
+
 ---
 
-## Phase 3: Verification & Context Maintenance
-- [x] Task 4: Unit Test Suite for `read_file` and `edit_file`
-  - [x] Create `t/tool_read_edit_file.t`
-  - [x] Test full vs sliced reading (`read_file`) with edge cases (clamping, out-of-bounds, errors)
-  - [x] Test line replacement, insertion, deletion, and newline handling (`edit_file`)
-  - [x] Test `confirm_tool` prompt and rejection in manual mode
-  - [x] Test `confirm_tool` bypass in auto mode
-  - [x] Run full test suite (`prove -v t/*.t`)
+## Phase 3: Verification & Test Suite
+- [x] Task 4: Comprehensive Test Suite for `/new` and Session Management
+  - [x] Create `t/new_command.t`
+  - [x] Test `generate_session_id`, `init_session`, `get_current_session`
+  - [x] Test `handle_new_command` resetting messages and outputting confirmation
+  - [x] Test `archive_session` hook invocation
+  - [x] Test piped agent execution verifying messages reset between `/new` and subsequent prompt
+  - [x] Test `show_help` lists `/new`
+  - [x] Verify test suite passes (`prove -v t/new_command.t` and `prove t/`)
+
+### Checkpoint: Verification
+- [x] All tests pass (`prove t/`)
+
+---
+
+## Phase 4: Documentation & Context Maintenance
 - [x] Task 5: Context & Symbol Graph Refresh
-  - [x] Update `context/architecture.md`, `context/modules.md`, `context/conventions.md`, and `AGENTS.md`
-  - [x] Run AST scanner, dependency graph, and symbol graph scripts
+  - [x] Update `README.md` and `README.txt` with `/new` command documentation
+  - [x] Update `context/architecture.md` and `context/modules.md` with session abstraction and `handle_new_command`
+  - [x] Run AST scanner, dependency graph, and symbol graph generators
   - [x] Run `verify_context.py` to confirm zero integrity errors
-
----
-
-## Phase 4: Code Clean-Up
-- [x] Task 6: Comments Clean-Up in `code-agent.pl`
-  - [x] Clean up redundant narrative/boilerplate comments in `code-agent.pl`
-  - [x] Preserve essential Perl 5.8.6 Tiger OS compatibility notes and safety invariants
-  - [x] Verify syntax via `perl -c code-agent.pl`
-  - [x] Verify test suite via `prove -v t/*.t`
 
 ### Checkpoint: Complete
 - [x] 100% test pass rate across all test files
