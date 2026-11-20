@@ -210,6 +210,7 @@ our ($COLOR_DIM, $COLOR_RESET);
 
     our $LAST_API_ELAPSED = 0;
     my $resp = call_api("http://localhost:8080/v1/chat", ["custom-header: live"], '{"prompt":"hello"}');
+    print "\n";
 
     is_deeply($resp, {
         id      => "msg_live",
@@ -267,6 +268,48 @@ our ($COLOR_DIM, $COLOR_RESET);
     is($assistant_msg->{content}[0]{type}, 'thinking', 'Block 0 is signed thinking block');
     is($assistant_msg->{content}[0]{signature}, 'valid_sig_123', 'Block 0 has valid signature');
     is($assistant_msg->{content}[1]{type}, 'text', 'Block 1 is text block');
+}
+
+# ==================================================================
+# 7. Cursor visibility control (hide while working, show for user)
+# ==================================================================
+{
+    local $ENV{CLAUDE_TEST_TTY} = 1;
+
+    # Capture output of cursor_hide
+    my $out_hide = '';
+    {
+        open my $fh, '>', \$out_hide;
+        my $old = select($fh);
+        cursor_hide();
+        select($old);
+        close $fh;
+    }
+    is($out_hide, "\x1b[?25l", "cursor_hide emits ESC[?25l on TTY");
+
+    # Capture output of cursor_show
+    my $out_show = '';
+    {
+        open my $fh, '>', \$out_show;
+        my $old = select($fh);
+        cursor_show();
+        select($old);
+        close $fh;
+    }
+    is($out_show, "\x1b[?25h", "cursor_show emits ESC[?25h on TTY");
+
+    # When not TTY, no escape sequence emitted
+    local $ENV{CLAUDE_TEST_TTY} = 0;
+    my $out_nontty = '';
+    {
+        open my $fh, '>', \$out_nontty;
+        my $old = select($fh);
+        cursor_hide();
+        cursor_show();
+        select($old);
+        close $fh;
+    }
+    is($out_nontty, "", "cursor_hide/show emits nothing when not a TTY");
 }
 
 done_testing();

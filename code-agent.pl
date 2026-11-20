@@ -77,6 +77,20 @@ if (!-t STDOUT || exists $ENV{NO_COLOR}) {
     $COLOR_DIM   = '';
 }
 
+sub cursor_hide {
+    my $is_tty = defined $ENV{CLAUDE_TEST_TTY} ? $ENV{CLAUDE_TEST_TTY} : -t STDOUT;
+    print "\x1b[?25l" if $is_tty;
+}
+
+sub cursor_show {
+    my $is_tty = defined $ENV{CLAUDE_TEST_TTY} ? $ENV{CLAUDE_TEST_TTY} : -t STDOUT;
+    print "\x1b[?25h" if $is_tty;
+}
+
+END {
+    cursor_show();
+}
+
 # Provider switching. CLAUDE_PROVIDER=gemini uses the Gemini API free tier with no
 # credit card required (default is Anthropic). Can also be switched during conversation
 # via /claude or /gemini (see configure_provider below).
@@ -368,7 +382,8 @@ sub call_api {
 
     my $start_time = time();
     my $http_code = '';
-    my $use_live_timer = ((-t STDOUT || $ENV{CLAUDE_TEST_TTY}) && $has_body) ? 1 : 0;
+    my $is_tty = defined $ENV{CLAUDE_TEST_TTY} ? $ENV{CLAUDE_TEST_TTY} : -t STDOUT;
+    my $use_live_timer = ($is_tty && $has_body) ? 1 : 0;
 
     if ($use_live_timer) {
         my $pid = fork();
@@ -397,8 +412,9 @@ sub call_api {
                     last;
                 }
                 my $elapsed = int(time() - $start_time);
-                if ($elapsed >= 1 && $elapsed != $last_sec) {
-                    print "\r" . format_thinking_status($elapsed);
+                $elapsed = 1 if $elapsed < 1;
+                if ($elapsed != $last_sec) {
+                    print "\r\033[K" . format_thinking_status($elapsed);
                     $last_sec = $elapsed;
                 }
                 select(undef, undef, undef, 0.2);
@@ -1058,6 +1074,8 @@ sub select_model_interactive {
         return _select_model_nontty(\@models, $current_model, $in_fh, $out_fh);
     }
 
+    cursor_show();
+
     my $orig_stty;
     if ($is_tty) {
         $orig_stty = `stty -g 2>/dev/null`;
@@ -1161,6 +1179,7 @@ sub select_model_interactive {
     print $out_fh "\r\n";
 
     die $eval_err if $eval_err;
+    cursor_hide();
     return $selected_id;
 }
 
@@ -1551,6 +1570,7 @@ sub _maybe_save_gemini_key {
 # Return value: input string (raw bytes, without newline). undef on cancel.
 sub read_secret_or_cancel {
     my ($prompt) = @_;
+    cursor_show();
     print $prompt;
 
     my $orig_stty = `stty -g`;
@@ -1581,6 +1601,7 @@ sub read_secret_or_cancel {
 
     system('stty', $orig_stty) if defined $orig_stty && $orig_stty ne '';
     print "\n";
+    cursor_hide();
     return $cancelled ? undef : $buf;
 }
 
@@ -1866,6 +1887,8 @@ sub read_secret_or_cancel {
         my ($prompt, $use_history, $color) = @_;
         $use_history = 1 unless defined $use_history;
         $color = '' unless defined $color;
+
+        cursor_show();
 
         my $orig_stty = `stty -g`;
         chomp $orig_stty;
@@ -2204,6 +2227,7 @@ sub read_secret_or_cancel {
         if ($use_history && defined $result && $result ne '') {
             push @HISTORY, $result;
         }
+        cursor_hide();
         return $result;
     }
 }
@@ -2558,6 +2582,7 @@ while (1) {
         my $resp = eval { call_api($API_URL, build_headers(), MiniJSON::encode($body)) };
         if ($@) {
             print clear_thinking_line() if -t STDOUT;
+            cursor_show();
             print $@;
             last;
         }
@@ -2565,6 +2590,7 @@ while (1) {
         my @content_blocks = eval { parse_response($resp) };
         if ($@) {
             print clear_thinking_line() if -t STDOUT;
+            cursor_show();
             print $@;
             last;
         }
@@ -2609,6 +2635,7 @@ while (1) {
 }
 
 print "\nGoodbye.\n";
+cursor_show();
 }
 
 1;
