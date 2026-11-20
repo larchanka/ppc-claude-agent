@@ -1,0 +1,14 @@
+# Context generator cache
+.context_cache/
+
+# Local configuration and credentials
+.claude-agent-env
+
+# macOS system files
+.DS_Store
+._*
+
+# Editor swap files
+*.swp
+*.swo
+*~
