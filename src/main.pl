@@ -39,7 +39,7 @@ print "\e[7mCode AI-Agent\e[0m\n";
 print "Hello. (Type 'exit' or Ctrl-D to quit. New chat with /new. Switch model with /models. Switch AI with /claude /gemini /openai. Mode with /auto /manual. Type /help for help)\n";
 
 while (1) {
-    my $input = read_line_interactive("\nUser> ", 1, $COLOR_USER);
+    my $input = read_line_interactive("\nUser> ${COLOR_RESET}", 1, $COLOR_USER);
     last unless defined $input;
     $input = decode('UTF-8', $input, FB_DEFAULT);
     next if $input eq '';
@@ -165,7 +165,7 @@ while (1) {
         my @tool_results;
         for my $block (@content_blocks) {
             if ($block->{type} eq 'text') {
-                print "\n${COLOR_MODEL}Code AI> ";
+                print "\n${COLOR_MODEL}Code AI>${COLOR_RESET} ";
                 slow_print("$block->{text}\n");
                 print $COLOR_RESET;
             }

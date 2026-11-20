@@ -67,9 +67,9 @@ sub load_env_file {
 
 # Theme-safe ANSI attributes (zero hardcoded colors; adapts to Terminal profile)
 our $COLOR_RESET = "\x1b[0m";
-our $COLOR_USER  = "\x1b[0m";   # Default foreground (avoids \e[2m dim which blends into background on Leopard/Tiger)
-our $COLOR_MODEL = "\x1b[1m";   # Bold (high contrast using profile's bold setting)
-our $COLOR_DIM   = "\x1b[2m";   # Dim (for compact tool invocation summaries)
+our $COLOR_USER  = "\x1b[34m";   # Default foreground (avoids \e[2m dim which blends into background on Leopard/Tiger)
+our $COLOR_MODEL = "\x1b[35m";   # Bold (high contrast using profile's bold setting)
+our $COLOR_DIM   = "\x1b[33m";   # Dim (for compact tool invocation summaries)
 if (!-t STDOUT || exists $ENV{NO_COLOR}) {
     $COLOR_RESET = '';
     $COLOR_USER  = '';
