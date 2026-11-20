@@ -30,8 +30,8 @@ binmode STDERR, ':encoding(UTF-8)';
 $| = 1;
 
 # --- Configuration ---
-my $CURL      = $ENV{CLAUDE_CURL} || '/usr/local/code-toolchain/bin/curl';
-my $CACERT    = $ENV{CLAUDE_CACERT} || '/usr/local/code-toolchain/cacert.pem';
+my $CURL   = $ENV{CLAUDE_CURL}   || (-x '/usr/local/code-toolchain/bin/curl' ? '/usr/local/code-toolchain/bin/curl' : '/usr/local/claude-toolchain/bin/curl');
+my $CACERT = $ENV{CLAUDE_CACERT} || (-f '/usr/local/code-toolchain/cacert.pem' ? '/usr/local/code-toolchain/cacert.pem' : '/usr/local/claude-toolchain/cacert.pem');
 my $MAX_TOKENS = 4096;
 
 # Resolves the environment file path.
@@ -63,8 +63,6 @@ sub load_env_file {
         close $fh;
     }
 }
-
-my $ENV_FILE_PATH = get_env_file_path();
 
 # Theme-safe ANSI attributes (zero hardcoded colors; adapts to Terminal profile)
 my $COLOR_RESET = "\x1b[0m";
@@ -101,7 +99,7 @@ sub configure_provider {
     elsif ($provider eq 'anthropic') {
         $ENV{ANTHROPIC_API_KEY} or die "ANTHROPIC_API_KEY is not set.\n";
         $API_KEY = $ENV{ANTHROPIC_API_KEY};
-        $MODEL   = $ENV{CLAUDE_MODEL} || 'code-sonnet-4-5-20250929';
+        $MODEL   = $ENV{CLAUDE_MODEL} || 'claude-sonnet-4-5-20250929';
         $API_URL = 'https://api.anthropic.com/v1/messages';
         $ANTHROPIC_VERSION = '2023-06-01';
     }
