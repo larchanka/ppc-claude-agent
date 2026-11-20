@@ -1,0 +1,28 @@
+{
+  "total_internal_edges": 0,
+  "entrypoints": [],
+  "hub_modules": [],
+  "external_dependencies": [
+    "Encode qw(decode encode FB_DEFAULT",
+    "strict",
+    "utf8",
+    "warnings"
+  ],
+  "internal_graph": {
+    "claude-agent.pl": [],
+    "Install.command": []
+  },
+  "reverse_graph": {
+    "claude-agent.pl": [],
+    "Install.command": []
+  },
+  "file_external_deps": {
+    "claude-agent.pl": [
+      "strict",
+      "warnings",
+      "utf8",
+      "Encode qw(decode encode FB_DEFAULT"
+    ],
+    "Install.command": []
+  }
+}

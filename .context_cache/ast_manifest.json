@@ -1,0 +1,218 @@
+{
+  "root": "/Users/mikhaillarchanka/Projects/ppc-claude-agent",
+  "total_files": 2,
+  "total_lines": 1919,
+  "total_symbols": 39,
+  "languages": {
+    "bash": 1,
+    "perl": 1
+  },
+  "files": [
+    {
+      "path": "Install.command",
+      "language": "bash",
+      "extension": ".command",
+      "lines": 233,
+      "size_bytes": 8125,
+      "parser": "regex_fallback",
+      "symbols": {
+        "classes": [],
+        "functions": [],
+        "interfaces_and_types": [],
+        "imports": [],
+        "exports": [],
+        "parser": "regex_fallback"
+      }
+    },
+    {
+      "path": "claude-agent.pl",
+      "language": "perl",
+      "extension": ".pl",
+      "lines": 1686,
+      "size_bytes": 71225,
+      "parser": "regex_fallback",
+      "symbols": {
+        "classes": [],
+        "functions": [
+          {
+            "name": "configure_provider",
+            "line": 62
+          },
+          {
+            "name": "encode",
+            "line": 146
+          },
+          {
+            "name": "encode_string",
+            "line": 166
+          },
+          {
+            "name": "decode",
+            "line": 177
+          },
+          {
+            "name": "_skip_ws",
+            "line": 184
+          },
+          {
+            "name": "_decode_value",
+            "line": 189
+          },
+          {
+            "name": "_decode_object",
+            "line": 207
+          },
+          {
+            "name": "_decode_array",
+            "line": 229
+          },
+          {
+            "name": "_decode_string",
+            "line": 247
+          },
+          {
+            "name": "call_api",
+            "line": 282
+          },
+          {
+            "name": "quote",
+            "line": 338
+          },
+          {
+            "name": "build_headers",
+            "line": 355
+          },
+          {
+            "name": "build_request",
+            "line": 369
+          },
+          {
+            "name": "build_request_anthropic",
+            "line": 376
+          },
+          {
+            "name": "build_request_gemini",
+            "line": 387
+          },
+          {
+            "name": "_gemini_thinking_config",
+            "line": 448
+          },
+          {
+            "name": "build_request_openai",
+            "line": 460
+          },
+          {
+            "name": "parse_response",
+            "line": 526
+          },
+          {
+            "name": "parse_response_openai",
+            "line": 533
+          },
+          {
+            "name": "parse_response_anthropic",
+            "line": 559
+          },
+          {
+            "name": "parse_response_gemini",
+            "line": 569
+          },
+          {
+            "name": "confirm",
+            "line": 654
+          },
+          {
+            "name": "slow_print",
+            "line": 666
+          },
+          {
+            "name": "gemini_key_setup",
+            "line": 688
+          },
+          {
+            "name": "_validate_gemini_key",
+            "line": 775
+          },
+          {
+            "name": "_maybe_save_gemini_key",
+            "line": 811
+          },
+          {
+            "name": "read_secret_or_cancel",
+            "line": 848
+          },
+          {
+            "name": "_debug_log",
+            "line": 900
+          },
+          {
+            "name": "_utf8_char_len",
+            "line": 922
+          },
+          {
+            "name": "_char_width",
+            "line": 933
+          },
+          {
+            "name": "_display_width_chars",
+            "line": 948
+          },
+          {
+            "name": "_display_width",
+            "line": 956
+          },
+          {
+            "name": "_term_size",
+            "line": 968
+          },
+          {
+            "name": "_query_cursor_row",
+            "line": 987
+          },
+          {
+            "name": "_query_cursor_pos",
+            "line": 1043
+          },
+          {
+            "name": "_probe_terminal_size",
+            "line": 1110
+          },
+          {
+            "name": "_walk_position",
+            "line": 1151
+          },
+          {
+            "name": "read_line_interactive",
+            "line": 1171
+          },
+          {
+            "name": "run_tool",
+            "line": 1519
+          }
+        ],
+        "interfaces_and_types": [],
+        "imports": [
+          {
+            "raw": "use strict;",
+            "source": "strict"
+          },
+          {
+            "raw": "use warnings;",
+            "source": "warnings"
+          },
+          {
+            "raw": "use utf8;  # Interpret UTF-8 literals in this file",
+            "source": "utf8"
+          },
+          {
+            "raw": "use Encode qw(decode encode FB_DEFAULT);",
+            "source": "Encode qw(decode encode FB_DEFAULT)"
+          }
+        ],
+        "exports": [],
+        "parser": "regex_fallback"
+      }
+    }
+  ]
+}

@@ -1,0 +1,631 @@
+{
+  "total_symbols": 39,
+  "symbols": {
+    "claude-agent.pl::configure_provider": {
+      "id": "claude-agent.pl::configure_provider",
+      "name": "configure_provider",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 62,
+      "signature": "configure_provider()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::encode": {
+      "id": "claude-agent.pl::encode",
+      "name": "encode",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 146,
+      "signature": "encode()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::encode_string": {
+      "id": "claude-agent.pl::encode_string",
+      "name": "encode_string",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 166,
+      "signature": "encode_string()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::decode": {
+      "id": "claude-agent.pl::decode",
+      "name": "decode",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 177,
+      "signature": "decode()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::_skip_ws": {
+      "id": "claude-agent.pl::_skip_ws",
+      "name": "_skip_ws",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 184,
+      "signature": "_skip_ws()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::_decode_value": {
+      "id": "claude-agent.pl::_decode_value",
+      "name": "_decode_value",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 189,
+      "signature": "_decode_value()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::_decode_object": {
+      "id": "claude-agent.pl::_decode_object",
+      "name": "_decode_object",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 207,
+      "signature": "_decode_object()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::_decode_array": {
+      "id": "claude-agent.pl::_decode_array",
+      "name": "_decode_array",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 229,
+      "signature": "_decode_array()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::_decode_string": {
+      "id": "claude-agent.pl::_decode_string",
+      "name": "_decode_string",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 247,
+      "signature": "_decode_string()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::call_api": {
+      "id": "claude-agent.pl::call_api",
+      "name": "call_api",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 282,
+      "signature": "call_api()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::quote": {
+      "id": "claude-agent.pl::quote",
+      "name": "quote",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 338,
+      "signature": "quote()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::build_headers": {
+      "id": "claude-agent.pl::build_headers",
+      "name": "build_headers",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 355,
+      "signature": "build_headers()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::build_request": {
+      "id": "claude-agent.pl::build_request",
+      "name": "build_request",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 369,
+      "signature": "build_request()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::build_request_anthropic": {
+      "id": "claude-agent.pl::build_request_anthropic",
+      "name": "build_request_anthropic",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 376,
+      "signature": "build_request_anthropic()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::build_request_gemini": {
+      "id": "claude-agent.pl::build_request_gemini",
+      "name": "build_request_gemini",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 387,
+      "signature": "build_request_gemini()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::_gemini_thinking_config": {
+      "id": "claude-agent.pl::_gemini_thinking_config",
+      "name": "_gemini_thinking_config",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 448,
+      "signature": "_gemini_thinking_config()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::build_request_openai": {
+      "id": "claude-agent.pl::build_request_openai",
+      "name": "build_request_openai",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 460,
+      "signature": "build_request_openai()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::parse_response": {
+      "id": "claude-agent.pl::parse_response",
+      "name": "parse_response",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 526,
+      "signature": "parse_response()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::parse_response_openai": {
+      "id": "claude-agent.pl::parse_response_openai",
+      "name": "parse_response_openai",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 533,
+      "signature": "parse_response_openai()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::parse_response_anthropic": {
+      "id": "claude-agent.pl::parse_response_anthropic",
+      "name": "parse_response_anthropic",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 559,
+      "signature": "parse_response_anthropic()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::parse_response_gemini": {
+      "id": "claude-agent.pl::parse_response_gemini",
+      "name": "parse_response_gemini",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 569,
+      "signature": "parse_response_gemini()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::confirm": {
+      "id": "claude-agent.pl::confirm",
+      "name": "confirm",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 654,
+      "signature": "confirm()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::slow_print": {
+      "id": "claude-agent.pl::slow_print",
+      "name": "slow_print",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 666,
+      "signature": "slow_print()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::gemini_key_setup": {
+      "id": "claude-agent.pl::gemini_key_setup",
+      "name": "gemini_key_setup",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 688,
+      "signature": "gemini_key_setup()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::_validate_gemini_key": {
+      "id": "claude-agent.pl::_validate_gemini_key",
+      "name": "_validate_gemini_key",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 775,
+      "signature": "_validate_gemini_key()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::_maybe_save_gemini_key": {
+      "id": "claude-agent.pl::_maybe_save_gemini_key",
+      "name": "_maybe_save_gemini_key",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 811,
+      "signature": "_maybe_save_gemini_key()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::read_secret_or_cancel": {
+      "id": "claude-agent.pl::read_secret_or_cancel",
+      "name": "read_secret_or_cancel",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 848,
+      "signature": "read_secret_or_cancel()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::_debug_log": {
+      "id": "claude-agent.pl::_debug_log",
+      "name": "_debug_log",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 900,
+      "signature": "_debug_log()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::_utf8_char_len": {
+      "id": "claude-agent.pl::_utf8_char_len",
+      "name": "_utf8_char_len",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 922,
+      "signature": "_utf8_char_len()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::_char_width": {
+      "id": "claude-agent.pl::_char_width",
+      "name": "_char_width",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 933,
+      "signature": "_char_width()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::_display_width_chars": {
+      "id": "claude-agent.pl::_display_width_chars",
+      "name": "_display_width_chars",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 948,
+      "signature": "_display_width_chars()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::_display_width": {
+      "id": "claude-agent.pl::_display_width",
+      "name": "_display_width",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 956,
+      "signature": "_display_width()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::_term_size": {
+      "id": "claude-agent.pl::_term_size",
+      "name": "_term_size",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 968,
+      "signature": "_term_size()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::_query_cursor_row": {
+      "id": "claude-agent.pl::_query_cursor_row",
+      "name": "_query_cursor_row",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 987,
+      "signature": "_query_cursor_row()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::_query_cursor_pos": {
+      "id": "claude-agent.pl::_query_cursor_pos",
+      "name": "_query_cursor_pos",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 1043,
+      "signature": "_query_cursor_pos()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::_probe_terminal_size": {
+      "id": "claude-agent.pl::_probe_terminal_size",
+      "name": "_probe_terminal_size",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 1110,
+      "signature": "_probe_terminal_size()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::_walk_position": {
+      "id": "claude-agent.pl::_walk_position",
+      "name": "_walk_position",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 1151,
+      "signature": "_walk_position()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::read_line_interactive": {
+      "id": "claude-agent.pl::read_line_interactive",
+      "name": "read_line_interactive",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 1171,
+      "signature": "read_line_interactive()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    },
+    "claude-agent.pl::run_tool": {
+      "id": "claude-agent.pl::run_tool",
+      "name": "run_tool",
+      "kind": "function",
+      "path": "claude-agent.pl",
+      "line": 1519,
+      "signature": "run_tool()",
+      "args": [],
+      "return_type": null,
+      "docstring": "",
+      "callees": [],
+      "callers": []
+    }
+  },
+  "name_index": {
+    "configure_provider": [
+      "claude-agent.pl::configure_provider"
+    ],
+    "encode": [
+      "claude-agent.pl::encode"
+    ],
+    "encode_string": [
+      "claude-agent.pl::encode_string"
+    ],
+    "decode": [
+      "claude-agent.pl::decode"
+    ],
+    "_skip_ws": [
+      "claude-agent.pl::_skip_ws"
+    ],
+    "_decode_value": [
+      "claude-agent.pl::_decode_value"
+    ],
+    "_decode_object": [
+      "claude-agent.pl::_decode_object"
+    ],
+    "_decode_array": [
+      "claude-agent.pl::_decode_array"
+    ],
+    "_decode_string": [
+      "claude-agent.pl::_decode_string"
+    ],
+    "call_api": [
+      "claude-agent.pl::call_api"
+    ],
+    "quote": [
+      "claude-agent.pl::quote"
+    ],
+    "build_headers": [
+      "claude-agent.pl::build_headers"
+    ],
+    "build_request": [
+      "claude-agent.pl::build_request"
+    ],
+    "build_request_anthropic": [
+      "claude-agent.pl::build_request_anthropic"
+    ],
+    "build_request_gemini": [
+      "claude-agent.pl::build_request_gemini"
+    ],
+    "_gemini_thinking_config": [
+      "claude-agent.pl::_gemini_thinking_config"
+    ],
+    "build_request_openai": [
+      "claude-agent.pl::build_request_openai"
+    ],
+    "parse_response": [
+      "claude-agent.pl::parse_response"
+    ],
+    "parse_response_openai": [
+      "claude-agent.pl::parse_response_openai"
+    ],
+    "parse_response_anthropic": [
+      "claude-agent.pl::parse_response_anthropic"
+    ],
+    "parse_response_gemini": [
+      "claude-agent.pl::parse_response_gemini"
+    ],
+    "confirm": [
+      "claude-agent.pl::confirm"
+    ],
+    "slow_print": [
+      "claude-agent.pl::slow_print"
+    ],
+    "gemini_key_setup": [
+      "claude-agent.pl::gemini_key_setup"
+    ],
+    "_validate_gemini_key": [
+      "claude-agent.pl::_validate_gemini_key"
+    ],
+    "_maybe_save_gemini_key": [
+      "claude-agent.pl::_maybe_save_gemini_key"
+    ],
+    "read_secret_or_cancel": [
+      "claude-agent.pl::read_secret_or_cancel"
+    ],
+    "_debug_log": [
+      "claude-agent.pl::_debug_log"
+    ],
+    "_utf8_char_len": [
+      "claude-agent.pl::_utf8_char_len"
+    ],
+    "_char_width": [
+      "claude-agent.pl::_char_width"
+    ],
+    "_display_width_chars": [
+      "claude-agent.pl::_display_width_chars"
+    ],
+    "_display_width": [
+      "claude-agent.pl::_display_width"
+    ],
+    "_term_size": [
+      "claude-agent.pl::_term_size"
+    ],
+    "_query_cursor_row": [
+      "claude-agent.pl::_query_cursor_row"
+    ],
+    "_query_cursor_pos": [
+      "claude-agent.pl::_query_cursor_pos"
+    ],
+    "_probe_terminal_size": [
+      "claude-agent.pl::_probe_terminal_size"
+    ],
+    "_walk_position": [
+      "claude-agent.pl::_walk_position"
+    ],
+    "read_line_interactive": [
+      "claude-agent.pl::read_line_interactive"
+    ],
+    "run_tool": [
+      "claude-agent.pl::run_tool"
+    ]
+  }
+}
