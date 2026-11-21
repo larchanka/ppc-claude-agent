@@ -63,6 +63,12 @@ Any action that alters disk contents or executes arbitrary system instructions M
 - `run_shell`: Mandatory call to `confirm_tool("Run this command: $command")`.
 - If the user declines, the tool must return `"Cancelled by user."` rather than throwing an exception.
 - `confirm_tool(...)` respects `$AUTO_MODE` (toggled by `/auto` and `/manual` slash commands): in autonomous mode, prompts execute immediately; in manual mode, it prompts the user with `[y/N]`.
+- When executed from an active sub-agent, `confirm_tool(...)` automatically tags prompts with `[Sub-agent: $type]` for user attribution.
+
+### Sub-Agent Safety & Context Isolation
+- **Role Permissions**: `plan` sub-agents are strictly read-only (`read_file`, `list_dir`) and must never be granted mutation tools (`write_file`, `edit_file`, `run_shell`). Attempts to invoke mutation tools under `plan` are rejected at runtime.
+- **Recursion Guard**: Sub-agents cannot invoke further sub-agents (`invoke_subagent` is excluded from sub-agent toolsets).
+- **Turn Budget Limit**: Sub-agent loops are capped at a hard limit of 50 turns. The remaining turn count is injected into the initial task prompt and every subsequent tool result context (`[Turn X of 50. Turns remaining: Y]`).
 
 ---
 

@@ -30,6 +30,10 @@ Once started, you can chat with the agent or enter slash commands:
 - /help    : Show available commands
 - exit     : Exit the agent (or press Ctrl-D)
 
+The agent can also autonomously delegate tasks to specialized sub-agents
+("plan" for read-only exploration, "build" for implementation) with their
+own isolated context to keep conversation history clean.
+
 REQUIREMENTS
 ------------------------
 - A PowerPC Mac running Mac OS X 10.4 (Tiger) -- tested on an iBook G4
@@ -50,7 +54,7 @@ WHAT'S INSIDE
 - cacert.pem       : current CA certificate bundle
 - code-agent.pl    : the agent itself (single Perl file, no dependencies)
 - build.pl         : build script to reassemble code-agent.pl from src/
-- src/             : modular source files for the agent
+- src/             : 11 modular source files for the agent (including prompts.pl)
 - Install.command  : the installer you double-click
 
 BUILDING FROM SOURCE

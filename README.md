@@ -39,6 +39,7 @@ Vintage Macs are wonderful pieces of industrial design and distraction-free comp
 - **Bundled Modern TLS `curl`**: Includes a prebuilt, statically-linked PowerPC `curl` binary with OpenSSL 1.0.2u supporting **TLS 1.2 & TLS 1.3**, alongside a current Mozilla `cacert.pem` root certificate bundle.
 - **Multi-Provider AI**: Connects to **Anthropic Claude**, **Google Gemini** (with a free tier requiring no credit card), or **Local OpenAI-compatible models** (Ollama, llama.cpp, LocalAI running on your home LAN).
 - **Agentic Tool Execution**: Autonomously inspects directories, reads files, writes code, and executes shell commands directly on your Mac.
+- **Autonomous Sub-Agents**: Delegates complex tasks to specialized sub-agents with isolated conversation contexts (`plan` for read-only exploration and `build` for implementation), preserving context tokens and displaying progress in an indented tree view.
 - **Safety Modes**: Switch between **Manual Mode** (`/manual`, requiring user confirmation for disk writes and commands) and **Autonomous Mode** (`/auto`, executing tools automatically).
 - **Session Management**: Start a fresh conversation at any time with `/new` to reset context history without restarting the agent or re-authenticating.
 - **Retro Vintage Terminal UX**: Built-in VT100 line editor with history navigation, arrow keys, and a nostalgic typewriter typing effect (`slow_print`).
@@ -106,6 +107,32 @@ Code Agent is equipped with native tools that allow it to act as an autonomous c
 - **`edit_file`**: Surgically edit existing files by replacing, inserting, or deleting specific line ranges (`start_line` to `end_line`, 1-based, inclusive) with replacement `content`.
 - **`list_dir`**: Browse directories and examine repository structures.
 - **`run_shell`**: Execute Unix commands in the Tiger shell (`sh`/`bash`), allowing the agent to run tests, inspect system metrics, manage processes, and build software.
+- **`invoke_subagent`**: Delegate complex, multi-turn tasks to an isolated sub-agent (`plan` or `build`) with its own turn budget and conversation history.
+
+### Sub-Agent Delegation & Context Isolation
+
+When dealing with large codebases or exploratory analysis, running multiple tool calls in the primary conversation history quickly exhausts token context and increases network latency on vintage Macs. Sub-agents solve this through hierarchical delegation:
+
+1. **Context Isolation**: The sub-agent executes in a completely separate, temporary message session. Only its final summary is returned to the parent agent, keeping the main context clean and fast.
+2. **Specialized Roles**:
+   - **`plan`**: Strictly **read-only** mode (`read_file`, `list_dir`). File modification and shell execution are blocked, so it never prompts for destructive confirmation. Perfect for codebase survey and planning.
+   - **`build`** (default): Full implementation mode (`read_file`, `write_file`, `edit_file`, `list_dir`, `run_shell`). To prevent runaway recursion, sub-agents cannot invoke further sub-agents.
+3. **Turn Budget & Loop Safety**:
+   - Sub-agents are capped at **50 turns** maximum.
+   - In both the initial prompt and every tool result, the remaining turn countdown is injected into the context (`[Turn X of 50. Turns remaining: Y]`), ensuring the sub-agent plans within its budget.
+4. **Visual Tree Rendering**:
+   Sub-agent actions are visually nested with 2-space indentation and Cyan ANSI connectors:
+   ```text
+     ┌── [Sub-agent: plan] Inspect codebase structure
+     │ [Turn 1/50] list_dir   src
+     │ [Turn 2/50] read_file   src/tools.pl   L1-40
+     └── [Sub-agent: plan] Completed in 2 turn(s)
+   ```
+5. **Confirmation Transparency**: In manual mode, destructive actions by a build sub-agent are explicitly labeled:
+   ```text
+   [Confirm] [Sub-agent: build] Edit file 'src/tools.pl' (lines 10-20)?
+   Proceed? [y/N]
+   ```
 
 ### Permission & Safety Model
 
@@ -190,12 +217,14 @@ graph TD
     ToolGate -->|Approved / /auto| T3["edit_file"]
     ToolGate -->|Approved / /auto| T4["list_dir"]
     ToolGate -->|Approved / /auto| T5["run_shell"]
+    ToolGate -->|Approved / /auto| T6["invoke_subagent<br/>(plan / build)"]
     
     T1 --> Loop
     T2 --> Loop
     T3 --> Loop
     T4 --> Loop
     T5 --> Loop
+    T6 --> Loop
 ```
 
 ---
@@ -251,7 +280,8 @@ perl -c code-agent.pl
 prove -v t/*.t
 ```
 
-Test coverage includes 12 automated test suites:
+Test coverage includes 14 automated test suites:
+- `t/agents_context.t`: Global (~/.agents/AGENTS.md) and project-local instructions loading and deduplication.
 - `t/auto_manual_commands.t`: Unit tests for `/auto`, `/manual`, state accessors, and tool bypass logic.
 - `t/banner.t`: Unit tests for two-tone ANSI banner formatting, 80-column bounds, and `$NO_COLOR` graceful degradation.
 - `t/build.t`: Unit tests for `build.pl` modular assembly, syntax checks, and sync verification.
@@ -261,6 +291,7 @@ Test coverage includes 12 automated test suites:
 - `t/models_command.t`: Interactive `/models` slash command handling.
 - `t/new_command.t`: Session reset, conversation archiving, and context clearing tests.
 - `t/select_model_interactive.t`: Terminal menu navigation, key reading, and scrolling tests.
+- `t/subagents.t`: Unit tests for sub-agent invocation (`plan`/`build`), turn countdown injection, loop limits, and ANSI tree formatting.
 - `t/thinking_visuals.t`: Extended reasoning / thinking progress visual timers.
 - `t/tool_call_visuals.t`: ANSI formatting and compact parameter summaries for tool calls.
 - `t/tool_read_edit_file.t`: Line slicing and targeted multi-line editing tests.
@@ -271,7 +302,7 @@ Test coverage includes 12 automated test suites:
 
 - **`code-agent.pl`**: The standalone, self-contained distribution agent script (JSON engine, API adapters, terminal line editor, tool executor) assembled by `build.pl`.
 - **`build.pl`**: Zero-dependency build script that compiles `src/*.pl` into `code-agent.pl` and verifies syntax.
-- **`src/`**: Modular source files (10 domain-specific components: `header.pl`, `json.pl`, `transport.pl`, `providers.pl`, `models_menu.pl`, `session.pl`, `tools.pl`, `terminal.pl`, `ui.pl`, `main.pl`).
+- **`src/`**: Modular source files (11 domain-specific components: `header.pl`, `prompts.pl`, `json.pl`, `transport.pl`, `providers.pl`, `models_menu.pl`, `session.pl`, `tools.pl`, `terminal.pl`, `ui.pl`, `main.pl`).
 - **`Install.command`**: Interactive double-click setup wizard for Mac OS X Finder and terminal (automatically rebuilds from `src/` if present).
 - **`curl`**: Precompiled PowerPC Tiger binary (statically linked against OpenSSL 1.0.2u with TLS 1.2/1.3 support).
 - **`cacert.pem`**: Mozilla root CA certificate bundle for TLS verification.
