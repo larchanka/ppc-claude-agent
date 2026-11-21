@@ -93,6 +93,9 @@ A recursive-descent JSON parser and encoder tailored for standard Perl scalars, 
 - `show_banner($out_fh)`: Renders retro two-tone ASCII art startup banner ("Code" in yellow, "Agent" in magenta) with active provider, model, and mode status indicators.
 - `format_tool_call($name, $input)`: Formats tool invocation lines with ANSI colors and compact argument summaries.
 - `format_tool_summary($name, $input)`: Produces concise, human-readable summaries of tool parameters (e.g. truncated file paths or commands).
+- `format_subagent_start($subagent_type, $task)`: Formats indented sub-agent invocation header with Cyan ANSI tree brackets.
+- `format_subagent_tool_call($subagent_type, $turn, $max_turns, $name, $input)`: Formats indented sub-agent tool call with turn countdown indicators (`[Turn X/50]`).
+- `format_subagent_finish($subagent_type, $turns, $status)`: Formats indented sub-agent completion footer.
 - `format_thinking_status($elapsed)`: Formats active reasoning/thinking progress indicator with elapsed timer.
 - `finalize_thinking_line($elapsed)`: Replaces active progress with final thinking duration.
 - `clear_thinking_line()`: Clears transient thinking line via carriage return and ANSI line clear (`\r\033[K`).
@@ -101,16 +104,29 @@ A recursive-descent JSON parser and encoder tailored for standard Perl scalars, 
 #### Network & Tool Execution
 - `call_api($url, $headers_ref, $body_json, $method)`: Executes bundled `curl` with SSL certificate bundle for POST or GET requests and returns HTTP response body.
 - `confirm($prompt)`: Displays an interactive `[y/N]` prompt requiring affirmative user consent.
-- `confirm_tool($prompt)`: Tool permission gate returning `1` if `$AUTO_MODE` is enabled, or delegating to `confirm($prompt)` in manual mode.
-- `slow_print($text)`: Prints output with simulated typewriter delay for vintage terminal ambiance.
-- `run_tool($name, $input)`: Executes requested agent tools (`read_file` with optional line slicing, `write_file`, `edit_file`, `list_dir`, `run_shell`), gating side effects through `confirm_tool()`.
+- `confirm_tool($prompt)`: Tool permission gate returning `1` if `$AUTO_MODE` is enabled, or delegating to `confirm($prompt)` in manual mode (prefixed with `[Sub-agent: $type]` when invoked under a sub-agent).
+- `run_tool($name, $input)`: Executes requested agent tools (`read_file`, `write_file`, `edit_file`, `list_dir`, `run_shell`, `invoke_subagent`), gating side effects through `confirm_tool()`.
+- `get_subagent_tools($type)`: Returns filtered tool list for sub-agents (`plan`: strictly read-only `read_file` and `list_dir`; `build`: full tools excluding recursive `invoke_subagent`).
+- `run_subagent($task, $subagent_type)`: Executes synchronous turn-based sub-agent loop up to 50 turns with isolated conversation session, turn countdown context injection, and visual tree formatting.
+
+#### Prompts & Context Loading (`src/prompts.pl`)
+- `$SYSTEM_PROMPT`: Default system prompt for the primary agent loop.
+- `$SUBAGENT_PLAN_PROMPT`: Default prompt for the read-only planning sub-agent.
+- `$SUBAGENT_BUILD_PROMPT`: Default prompt for the implementation build sub-agent.
+- `get_subagent_base_prompt($type)`: Returns the base prompt template for `plan` or `build`.
+- `get_subagent_system_prompt($type, $max_turns)`: Composes sub-agent system prompt with turn budget and `AGENTS.md` context.
+- `get_subagent_initial_prompt($task, $max_turns)`: Constructs the initial task prompt with turn countdown metadata.
+- `get_subagent_countdown_note($turn, $max_turns, $turns_left)`: Generates turn countdown reminder injected into tool results.
+- `read_agents_file($path)`: Reads and UTF-8 decodes instructions file safely.
+- `get_agents_context($home_dir, $cwd)`: Discovers and formats global (`~/.agents/AGENTS.md`) and local (`./AGENTS.md`) instructions.
+- `get_effective_system_prompt($base_prompt, $home_dir, $cwd)`: Composes base system prompt with discovered context.
 
 ---
 
 ## 2. Module: `build.pl`
 
 ### Overview
-A manifest-driven assembly script written in pure Perl 5.8.6 with zero CPAN dependencies. It concatenates the 10 domain modules from `src/` into the standalone `code-agent.pl` distribution artifact, applies `chmod 0755`, and validates syntax via `perl -c`.
+A manifest-driven assembly script written in pure Perl 5.8.6 with zero CPAN dependencies. It concatenates the 11 domain modules from `src/` into the standalone `code-agent.pl` distribution artifact, applies `chmod 0755`, and validates syntax via `perl -c`.
 
 ### Command Line Interface
 - `perl build.pl`: Concatenates `src/*.pl` in manifest order, writes `code-agent.pl`, and verifies syntax.
