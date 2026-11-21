@@ -25,6 +25,10 @@
   <img src="https://img.shields.io/badge/License-MIT-lightgrey.svg" alt="License">
 </p>
 
+<p align="center">
+  <img src="images/terminal-subagent-execution.png" alt="Code Agent running on Mac OS X 10.4 Tiger with Sub-agent Execution" width="640">
+</p>
+
 ---
 
 ## 📖 Overview
@@ -82,6 +86,10 @@ code
 ## 🎮 Interactive Slash Commands
 
 While in the agent prompt (`User> `), use these commands at any time:
+
+<p align="center">
+  <img src="images/terminal-help-commands.png" alt="Code Agent Slash Commands on Mac OS X Tiger" width="640">
+</p>
 
 | Command | Description |
 | :--- | :--- |
