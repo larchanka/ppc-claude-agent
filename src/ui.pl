@@ -84,6 +84,15 @@ sub format_tool_summary {
                    : extract_basename($input->{path});
         push @parts, $target;
     }
+    elsif ($name eq 'invoke_subagent') {
+        my $type = (defined $input->{subagent_type} && length $input->{subagent_type})
+                 ? $input->{subagent_type}
+                 : 'build';
+        push @parts, "[$type]";
+        if (defined $input->{task} && length $input->{task}) {
+            push @parts, truncate_text($input->{task}, 30);
+        }
+    }
     else {
         for my $k (sort keys %$input) {
             my $v = $input->{$k};
@@ -123,6 +132,33 @@ sub finalize_thinking_line {
 
 sub clear_thinking_line {
     return "\r\033[K";
+}
+
+sub format_subagent_start {
+    my ($subagent_type, $task) = @_;
+    my $c_sub   = defined $COLOR_SUBAGENT ? $COLOR_SUBAGENT : '';
+    my $c_reset = defined $COLOR_RESET    ? $COLOR_RESET    : '';
+    my $c_dim   = defined $COLOR_DIM      ? $COLOR_DIM      : '';
+    my $clean_task = truncate_text($task, 50);
+    return "\n${c_sub}  ┌── [Sub-agent: $subagent_type]${c_reset} ${c_dim}$clean_task${c_reset}\n";
+}
+
+sub format_subagent_tool_call {
+    my ($subagent_type, $turn, $max_turns, $name, $input) = @_;
+    my $c_sub   = defined $COLOR_SUBAGENT ? $COLOR_SUBAGENT : '';
+    my $c_reset = defined $COLOR_RESET    ? $COLOR_RESET    : '';
+    my $c_dim   = defined $COLOR_DIM      ? $COLOR_DIM      : '';
+    my $summary = format_tool_summary($name, $input);
+    return "${c_sub}  │${c_reset} ${c_dim}[Turn $turn/$max_turns]${c_reset} $summary\n";
+}
+
+sub format_subagent_finish {
+    my ($subagent_type, $turns, $status) = @_;
+    my $c_sub   = defined $COLOR_SUBAGENT ? $COLOR_SUBAGENT : '';
+    my $c_reset = defined $COLOR_RESET    ? $COLOR_RESET    : '';
+    my $c_dim   = defined $COLOR_DIM      ? $COLOR_DIM      : '';
+    $status = 'Completed' unless defined $status && length $status;
+    return "${c_sub}  └── [Sub-agent: $subagent_type]${c_reset} ${c_dim}$status in $turns turn(s)${c_reset}\n";
 }
 
 

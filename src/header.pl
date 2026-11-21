@@ -66,15 +66,17 @@ sub load_env_file {
 }
 
 # Theme-safe ANSI attributes (zero hardcoded colors; adapts to Terminal profile)
-our $COLOR_RESET = "\x1b[0m";
-our $COLOR_USER  = "\x1b[34m";   # Default foreground (avoids \e[2m dim which blends into background on Leopard/Tiger)
-our $COLOR_MODEL = "\x1b[35m";   # Bold (high contrast using profile's bold setting)
-our $COLOR_DIM   = "\x1b[33m";   # Dim (for compact tool invocation summaries)
+our $COLOR_RESET    = "\x1b[0m";
+our $COLOR_USER     = "\x1b[34m";   # Default foreground (avoids \e[2m dim which blends into background on Leopard/Tiger)
+our $COLOR_MODEL    = "\x1b[35m";   # Bold (high contrast using profile's bold setting)
+our $COLOR_DIM      = "\x1b[33m";   # Dim (for compact tool invocation summaries)
+our $COLOR_SUBAGENT = "\x1b[36m";   # Cyan (for sub-agent trees and badges)
 if (!-t STDOUT || exists $ENV{NO_COLOR}) {
-    $COLOR_RESET = '';
-    $COLOR_USER  = '';
-    $COLOR_MODEL = '';
-    $COLOR_DIM   = '';
+    $COLOR_RESET    = '';
+    $COLOR_USER     = '';
+    $COLOR_MODEL    = '';
+    $COLOR_DIM      = '';
+    $COLOR_SUBAGENT = '';
 }
 
 sub cursor_hide {
@@ -107,6 +109,7 @@ our $AUTO_MODE = $ENV{CLAUDE_AUTO_MODE} ? 1 : 0;
 our $CURRENT_SESSION = undef;
 our $SESSION_COUNTER = 0;
 our $LAST_API_ELAPSED = 0;
+our $CURRENT_SUBAGENT_TYPE = undef;
 
 # (Re)configures $API_KEY, $MODEL, $API_URL, etc. according to $provider.
 # Called at startup and by /claude and /gemini commands during conversation.
@@ -145,103 +148,5 @@ sub configure_provider {
     $PROVIDER = $provider;
 }
 
-
-our $SYSTEM_PROMPT = <<'EOS';
-You are a lightweight coding assistant running in the terminal of a
-PowerPC iBook G4 (Mac OS X 10.4 Tiger). You have five tools available:
-read_file, write_file, edit_file, list_dir, and run_shell. Use them to
-read, create, edit files and run commands in the user's working directory.
-Keep replies concise, and always reply in the same language the user wrote
-in (if they write in Japanese, reply in Japanese; if English, reply in
-English; and so on for other languages).
-
-Tool usage guidelines:
-- read_file: Reads file contents. Supports optional 1-based inclusive
-  `start_line` and `end_line` parameters. Use them to inspect specific
-  slices or navigate large files efficiently. Omit to read the full file.
-- edit_file: Replaces a range of lines (`start_line` to `end_line`,
-  1-based inclusive) with new `content`. Prefer `edit_file` over
-  `write_file` for updating existing files to avoid rewriting entire files.
-  To insert content without deleting lines, set `end_line = start_line - 1`.
-  To delete lines, provide an empty string `""` as `content`.
-- write_file: Creates a new file or completely overwrites an existing file.
-  Use primarily for creating new files.
-- list_dir: Lists entries in a directory.
-- run_shell: Executes a shell command and captures output.
-
-Environment quirks to keep in mind for run_shell, so you get it right on
-the first try instead of trial-and-error (each attempt needs the user's
-explicit y/N confirmation, so retries are especially disruptive here):
-- The system's stock `curl` is linked against an old OpenSSL and cannot
-  make HTTPS requests (TLS handshake failure). A modern, TLS-capable curl
-  is available via the `$CLAUDE_CURL` environment variable instead - for
-  any HTTPS fetch, use `"$CLAUDE_CURL" --cacert "$CLAUDE_CACERT" ...`
-  rather than plain `curl`.
-- If Python is needed, assume it's an old Python 2.x (no `urllib.request`,
-  no f-strings, no `except X as e:` - use `except Exception, e:` and the
-  legacy `urllib`/`urllib2` modules instead).
-EOS
-
-# Reads an AGENTS.md instructions file safely and decodes it from UTF-8.
-# Returns empty string if the file is missing, unreadable, or not a regular file.
-sub read_agents_file {
-    my ($path) = @_;
-    return '' unless defined $path && -f $path;
-    open(my $fh, '<', $path) or return '';
-    local $/;
-    my $raw = <$fh>;
-    close $fh;
-    return '' unless defined $raw;
-    my $content = decode('UTF-8', $raw, FB_DEFAULT);
-    return defined $content ? $content : '';
-}
-
-# Discovers global (~/.agents/AGENTS.md) and local (./AGENTS.md) instructions.
-# Deduplicates when both paths point to the exact same physical file via stat() dev/ino.
-# Returns formatted markdown sections or empty string if no instructions found.
-sub get_agents_context {
-    my ($home_dir, $cwd) = @_;
-    $home_dir = $ENV{HOME} if !defined $home_dir || $home_dir eq '';
-    $home_dir = '.' if !defined $home_dir || $home_dir eq '';
-    $cwd = '.' if !defined $cwd || $cwd eq '';
-
-    my $global_path = "$home_dir/.agents/AGENTS.md";
-    my $local_path  = "$cwd/AGENTS.md";
-
-    my ($g_dev, $g_ino) = -f $global_path ? (stat($global_path))[0, 1] : ();
-    my ($l_dev, $l_ino) = -f $local_path  ? (stat($local_path))[0, 1]  : ();
-
-    my $same_file = (defined $g_dev && defined $l_dev && $g_dev == $l_dev && $g_ino == $l_ino) ? 1 : 0;
-
-    my @sections;
-
-    my $global_content = read_agents_file($global_path);
-    $global_content =~ s/^\s+|\s+$//g;
-    if (length $global_content) {
-        push @sections, "# Global Instructions (~/.agents/AGENTS.md)\n\n$global_content";
-    }
-
-    if (!$same_file) {
-        my $local_content = read_agents_file($local_path);
-        $local_content =~ s/^\s+|\s+$//g;
-        if (length $local_content) {
-            push @sections, "# Project Instructions (AGENTS.md)\n\n$local_content";
-        }
-    }
-
-    return join("\n\n", @sections);
-}
-
-# Composes base system prompt with discovered AGENTS.md instructions.
-# Returns base prompt unchanged if context is empty.
-sub get_effective_system_prompt {
-    my ($base_prompt, $home_dir, $cwd) = @_;
-    $base_prompt = $SYSTEM_PROMPT unless defined $base_prompt;
-    my $context = get_agents_context($home_dir, $cwd);
-    return $base_prompt unless length $context;
-
-    my $prompt = $base_prompt;
-    $prompt =~ s/\s+$//;
-    return $prompt . "\n\n" . $context . "\n";
-}
+1;
 

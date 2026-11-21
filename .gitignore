@@ -11,6 +11,10 @@ code-agent.pl
 # macOS system files
 .DS_Store
 ._*
+.smbdelete*
+
+# Logs and test outputs
+*.log
 
 # Editor swap files
 *.swp

@@ -57,6 +57,24 @@ our @TOOLS = (
             required => ['command'],
         },
     },
+    {
+        name => 'invoke_subagent',
+        description => 'Delegate a specialized task to a sub-agent with its own isolated context. Returns the sub-agent\'s final summary.',
+        input_schema => {
+            type => 'object',
+            properties => {
+                task => {
+                    type => 'string',
+                    description => 'Clear, detailed task description and instructions for the sub-agent',
+                },
+                subagent_type => {
+                    type => 'string',
+                    description => 'Sub-agent role: "plan" (strictly read-only exploration using read_file and list_dir) or "build" (default, full read, write, edit, and shell access)',
+                },
+            },
+            required => ['task'],
+        },
+    },
 );
 
 sub confirm {
@@ -69,7 +87,22 @@ sub confirm {
 sub confirm_tool {
     my ($prompt) = @_;
     return 1 if $AUTO_MODE;
+    if (defined $CURRENT_SUBAGENT_TYPE && length $CURRENT_SUBAGENT_TYPE) {
+        $prompt = "[Sub-agent: $CURRENT_SUBAGENT_TYPE] $prompt";
+    }
     return confirm($prompt);
+}
+
+sub get_subagent_tools {
+    my ($type) = @_;
+    $type ||= 'build';
+    if ($type eq 'plan') {
+        my @plan_tools = grep { $_->{name} eq 'read_file' || $_->{name} eq 'list_dir' } @TOOLS;
+        return \@plan_tools;
+    }
+    # 'build' or any other: all tools EXCEPT invoke_subagent (prevent recursive delegation)
+    my @build_tools = grep { $_->{name} ne 'invoke_subagent' } @TOOLS;
+    return \@build_tools;
 }
 
 # Display responses incrementally like a typewriter. Added based on feedback
@@ -385,8 +418,123 @@ sub run_tool {
         my $output = `$command 2>&1`;
         return $output eq '' ? '(no output)' : $output;
     }
+    elsif ($name eq 'invoke_subagent') {
+        my $task = $input->{task};
+        return "Error: missing required 'task' parameter" unless defined $task && length $task;
+        my $subagent_type = defined $input->{subagent_type} ? $input->{subagent_type} : 'build';
+        return run_subagent($task, $subagent_type);
+    }
     else {
         return "Unknown tool: $name";
     }
+}
+
+sub run_subagent {
+    my ($task, $subagent_type) = @_;
+    $subagent_type = 'build' unless defined $subagent_type && length $subagent_type;
+    $subagent_type = 'build' unless $subagent_type eq 'plan' || $subagent_type eq 'build';
+
+    my $max_turns = 50;
+    my $tools_ref = get_subagent_tools($subagent_type);
+    my $effective_prompt = get_subagent_system_prompt($subagent_type, $max_turns);
+    my $initial_prompt   = get_subagent_initial_prompt($task, $max_turns);
+
+    my $sub_session = {
+        id       => generate_session_id(),
+        messages => [ { role => 'user', content => $initial_prompt } ],
+    };
+
+    local $CURRENT_SUBAGENT_TYPE = $subagent_type;
+
+    print format_subagent_start($subagent_type, $task);
+
+    my $turn = 0;
+    my $final_text = '';
+
+    while ($turn < $max_turns) {
+        $turn++;
+        my $turns_left = $max_turns - $turn;
+
+        my $body = build_request($sub_session->{messages}, $tools_ref, $effective_prompt);
+        my $resp = eval { call_api($API_URL, build_headers(), MiniJSON::encode($body)) };
+        if ($@) {
+            print clear_thinking_line() if -t STDOUT;
+            cursor_show();
+            my $err = "API error in sub-agent: $@";
+            print format_subagent_finish($subagent_type, $turn, "Failed: API error");
+            return $err;
+        }
+
+        my @content_blocks = eval { parse_response($resp) };
+        if ($@) {
+            print clear_thinking_line() if -t STDOUT;
+            cursor_show();
+            my $err = "Response parsing error in sub-agent: $@";
+            print format_subagent_finish($subagent_type, $turn, "Failed: parse error");
+            return $err;
+        }
+
+        if (-t STDOUT) {
+            print clear_thinking_line();
+        }
+
+        push @{$sub_session->{messages}}, { role => 'assistant', content => \@content_blocks };
+
+        my @tool_calls;
+        my $turn_text = '';
+        for my $block (@content_blocks) {
+            if ($block->{type} eq 'text') {
+                $turn_text .= $block->{text};
+            }
+            elsif ($block->{type} eq 'tool_use') {
+                push @tool_calls, $block;
+            }
+        }
+
+        if (!@tool_calls) {
+            $final_text = $turn_text;
+            print format_subagent_finish($subagent_type, $turn, "Completed");
+            last;
+        }
+
+        my @tool_results;
+        for my $call (@tool_calls) {
+            my $t_name  = $call->{name};
+            my $t_input = $call->{input};
+
+            print format_subagent_tool_call($subagent_type, $turn, $max_turns, $t_name, $t_input);
+
+            my $result;
+            if ($subagent_type eq 'plan' && $t_name ne 'read_file' && $t_name ne 'list_dir') {
+                $result = "Error: tool '$t_name' is not permitted for 'plan' sub-agent (read-only mode).";
+            }
+            elsif ($t_name eq 'invoke_subagent') {
+                $result = "Error: sub-agents cannot invoke sub-agents.";
+            }
+            else {
+                $result = run_tool($t_name, $t_input);
+            }
+
+            my $countdown_note = get_subagent_countdown_note($turn, $max_turns, $turns_left);
+            my $content_with_countdown = "$result\n\n$countdown_note";
+
+            push @tool_results, {
+                type        => 'tool_result',
+                tool_use_id => $call->{id},
+                name        => $t_name,
+                content     => $content_with_countdown,
+            };
+        }
+
+        push @{$sub_session->{messages}}, { role => 'user', content => \@tool_results };
+
+        if ($turn >= $max_turns) {
+            print format_subagent_finish($subagent_type, $turn, "Reached max turns ($max_turns)");
+            $final_text = "Sub-agent reached maximum turn limit ($max_turns). Last output: " . ($turn_text || '(no text output)');
+            last;
+        }
+    }
+
+    return $final_text;
 }
 
