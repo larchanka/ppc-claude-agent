@@ -7,6 +7,7 @@ use Getopt::Long qw(GetOptions);
 
 my @MODULES = (
     'src/header.pl',
+    'src/prompts.pl',
     'src/json.pl',
     'src/transport.pl',
     'src/providers.pl',

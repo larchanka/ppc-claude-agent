@@ -82,7 +82,8 @@ graph TD
   - `edit_file`: Replaces a specific line range (`start_line` through `end_line`, 1-based inclusive) with replacement content, deletes lines when content is empty, or inserts lines without deletion (`end_line = start_line - 1`), with bounds clamping and permission checked via `confirm_tool()`.
   - `list_dir`: Scans directory entries excluding `.` and `..`.
   - `run_shell`: Executes arbitrary shell commands via system backticks with permission checked via `confirm_tool()`.
-  - `confirm_tool($prompt)`: Permission wrapper that returns `1` immediately when `$AUTO_MODE` is active; delegates to interactive `confirm($prompt)` when manual mode is active.
+  - `invoke_subagent`: Delegates specialized tasks to an isolated sub-agent loop (up to 50 turns) with turn countdown tracking, supporting `plan` (strictly read-only `read_file` and `list_dir`) and `build` (full implementation tools).
+  - `confirm_tool($prompt)`: Permission wrapper that returns `1` immediately when `$AUTO_MODE` is active; delegates to interactive `confirm($prompt)` when manual mode is active (prefixed with `[Sub-agent: $type]` when invoked under a sub-agent).
   - `handle_auto_command($out_fh)` & `handle_manual_command($out_fh)`: Slash command handlers (`/auto`, `/manual`) toggling `$AUTO_MODE`.
   - `get_auto_mode()` & `set_auto_mode($val)`: Encapsulated accessors for `$AUTO_MODE`.
 
@@ -99,7 +100,7 @@ graph TD
 ### 6. Build & Modular Assembly Layer
 - **Location**: [`build.pl`](../build.pl), [`src/`](../src/), [`Install.command`](../Install.command)
 - **Responsibilities**:
-  - Modular decomposition of the monolithic codebase into 10 focused modules in `src/` (`header.pl`, `json.pl`, `transport.pl`, `providers.pl`, `models_menu.pl`, `session.pl`, `tools.pl`, `terminal.pl`, `ui.pl`, `main.pl`).
+  - Modular decomposition of the monolithic codebase into 11 focused modules in `src/` (`header.pl`, `prompts.pl`, `json.pl`, `transport.pl`, `providers.pl`, `models_menu.pl`, `session.pl`, `tools.pl`, `terminal.pl`, `ui.pl`, `main.pl`).
   - `build.pl`: Pure Perl 5.8.6 manifest-driven assembly script concatenating `src/*.pl` into the single-file distribution executable `code-agent.pl`, applying `chmod 0755`, and verifying syntax (`perl -c`).
   - Supports `--check` for CI/CD synchronization checks, and custom `--src-dir` and `--output` paths.
   - `Install.command`: Integrates automated `perl build.pl` rebuild when `build.pl` and `src/` are detected before deploying to `$BUILD_DIR/code-agent.pl`.

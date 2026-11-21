@@ -35,6 +35,7 @@ is($syntax_code, 0, "build.pl compiles cleanly (perl -c)")
 
     my @manifest = (
         'header.pl',
+        'prompts.pl',
         'json.pl',
         'transport.pl',
         'providers.pl',
@@ -116,7 +117,7 @@ is($syntax_code, 0, "build.pl compiles cleanly (perl -c)")
     mkdir $mock_src or die "Cannot mkdir $mock_src: $!";
 
     my @manifest = (
-        'header.pl', 'json.pl', 'transport.pl', 'providers.pl', 'models_menu.pl',
+        'header.pl', 'prompts.pl', 'json.pl', 'transport.pl', 'providers.pl', 'models_menu.pl',
         'session.pl', 'tools.pl', 'terminal.pl', 'ui.pl', 'main.pl',
     );
 

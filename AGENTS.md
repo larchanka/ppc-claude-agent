@@ -83,17 +83,18 @@ For in-depth architectural details, refer to the documentation in the [`context/
 | [`README.txt`](./README.txt) | User installation and operational manual | Documentation |
 
 ### Modular Source Layout (`src/*.pl`) & Build System
-`code-agent.pl` is generated from 10 modular files in `src/` concatenated in an explicit manifest order:
-1. `src/header.pl`: Pragmas, config, colors, cursor, env helpers, globals, `configure_provider`, `$SYSTEM_PROMPT`.
-2. `src/json.pl`: Pure-Perl JSON parser & encoder (`MiniJSON`).
-3. `src/transport.pl`: Curl invocation (`call_api`) and shell quotation (`quote`).
-4. `src/providers.pl`: Provider adapters for Anthropic, Gemini, OpenAI, model discovery.
-5. `src/models_menu.pl`: Interactive curses-like terminal model selection menu.
-6. `src/session.pl`: Session management, state accessors, slash command handlers.
-7. `src/tools.pl`: Tool definitions (`@TOOLS`), confirmation helpers, Gemini setup helpers, `run_tool`.
-8. `src/terminal.pl`: Pure-Perl interactive readline implementation with history and ANSI cursor positioning.
-9. `src/ui.pl`: Formatting helpers for tool calls, summaries, thinking status.
-10. `src/main.pl`: Guarded entrypoint under `unless (caller)` with REPL loop and turnaround.
+`code-agent.pl` is generated from 11 modular files in `src/` concatenated in an explicit manifest order:
+1. `src/header.pl`: Pragmas, config, colors, cursor, env helpers, globals, `configure_provider`.
+2. `src/prompts.pl`: System prompts (`$SYSTEM_PROMPT`), sub-agent instructions (`$SUBAGENT_PLAN_PROMPT`, `$SUBAGENT_BUILD_PROMPT`), AGENTS.md discovery and prompt composition helpers.
+3. `src/json.pl`: Pure-Perl JSON parser & encoder (`MiniJSON`).
+4. `src/transport.pl`: Curl invocation (`call_api`) and shell quotation (`quote`).
+5. `src/providers.pl`: Provider adapters for Anthropic, Gemini, OpenAI, model discovery.
+6. `src/models_menu.pl`: Interactive curses-like terminal model selection menu.
+7. `src/session.pl`: Session management, state accessors, slash command handlers.
+8. `src/tools.pl`: Tool definitions (`@TOOLS`, including `invoke_subagent`), sub-agent runner (`run_subagent`), confirmation helpers, Gemini setup helpers, `run_tool`.
+9. `src/terminal.pl`: Pure-Perl interactive readline implementation with history and ANSI cursor positioning.
+10. `src/ui.pl`: Formatting helpers for tool calls, sub-agent tree visuals, summaries, thinking status.
+11. `src/main.pl`: Guarded entrypoint under `unless (caller)` with REPL loop and turnaround.
 
 #### Build Tool Usage (`build.pl`)
 - `perl build.pl`: Concatenates `src/*.pl`, applies `chmod 0755`, runs `perl -c code-agent.pl`.
