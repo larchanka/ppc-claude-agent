@@ -182,3 +182,66 @@ explicit y/N confirmation, so retries are especially disruptive here):
   legacy `urllib`/`urllib2` modules instead).
 EOS
 
+# Reads an AGENTS.md instructions file safely and decodes it from UTF-8.
+# Returns empty string if the file is missing, unreadable, or not a regular file.
+sub read_agents_file {
+    my ($path) = @_;
+    return '' unless defined $path && -f $path;
+    open(my $fh, '<', $path) or return '';
+    local $/;
+    my $raw = <$fh>;
+    close $fh;
+    return '' unless defined $raw;
+    my $content = decode('UTF-8', $raw, FB_DEFAULT);
+    return defined $content ? $content : '';
+}
+
+# Discovers global (~/.agents/AGENTS.md) and local (./AGENTS.md) instructions.
+# Deduplicates when both paths point to the exact same physical file via stat() dev/ino.
+# Returns formatted markdown sections or empty string if no instructions found.
+sub get_agents_context {
+    my ($home_dir, $cwd) = @_;
+    $home_dir = $ENV{HOME} if !defined $home_dir || $home_dir eq '';
+    $home_dir = '.' if !defined $home_dir || $home_dir eq '';
+    $cwd = '.' if !defined $cwd || $cwd eq '';
+
+    my $global_path = "$home_dir/.agents/AGENTS.md";
+    my $local_path  = "$cwd/AGENTS.md";
+
+    my ($g_dev, $g_ino) = -f $global_path ? (stat($global_path))[0, 1] : ();
+    my ($l_dev, $l_ino) = -f $local_path  ? (stat($local_path))[0, 1]  : ();
+
+    my $same_file = (defined $g_dev && defined $l_dev && $g_dev == $l_dev && $g_ino == $l_ino) ? 1 : 0;
+
+    my @sections;
+
+    my $global_content = read_agents_file($global_path);
+    $global_content =~ s/^\s+|\s+$//g;
+    if (length $global_content) {
+        push @sections, "# Global Instructions (~/.agents/AGENTS.md)\n\n$global_content";
+    }
+
+    if (!$same_file) {
+        my $local_content = read_agents_file($local_path);
+        $local_content =~ s/^\s+|\s+$//g;
+        if (length $local_content) {
+            push @sections, "# Project Instructions (AGENTS.md)\n\n$local_content";
+        }
+    }
+
+    return join("\n\n", @sections);
+}
+
+# Composes base system prompt with discovered AGENTS.md instructions.
+# Returns base prompt unchanged if context is empty.
+sub get_effective_system_prompt {
+    my ($base_prompt, $home_dir, $cwd) = @_;
+    $base_prompt = $SYSTEM_PROMPT unless defined $base_prompt;
+    my $context = get_agents_context($home_dir, $cwd);
+    return $base_prompt unless length $context;
+
+    my $prompt = $base_prompt;
+    $prompt =~ s/\s+$//;
+    return $prompt . "\n\n" . $context . "\n";
+}
+

@@ -20,6 +20,7 @@ sub build_headers {
 
 sub build_request {
     my ($messages, $tools, $system) = @_;
+    $system = get_effective_system_prompt() unless defined $system;
     return build_request_gemini($messages, $tools, $system)   if $PROVIDER eq 'gemini';
     return build_request_openai($messages, $tools, $system)   if $PROVIDER eq 'openai';
     return build_request_anthropic($messages, $tools, $system);

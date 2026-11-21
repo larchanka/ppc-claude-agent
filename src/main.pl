@@ -126,7 +126,7 @@ while (1) {
     push @{$session->{messages}}, { role => 'user', content => $input };
 
     while (1) {
-        my $body = build_request($session->{messages}, \@TOOLS, $SYSTEM_PROMPT);
+        my $body = build_request($session->{messages}, \@TOOLS, get_effective_system_prompt());
         my $resp = eval { call_api($API_URL, build_headers(), MiniJSON::encode($body)) };
         if ($@) {
             print clear_thinking_line() if -t STDOUT;
